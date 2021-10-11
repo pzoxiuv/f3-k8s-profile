@@ -83,20 +83,20 @@ elif [ -z "$LVM" ] ; then
     #
     # See if we can try to use an LVM instead of just the 4th partition.
     #
-    $SUDO lsblk -n -P -b -o NAME,FSTYPE,MOUNTPOINT,PARTTYPE,PARTUUID,TYPE,PKNAME,SIZE | perl -e 'my %devs = (); while (<STDIN>) { $_ =~ s/([A-Z0-9a-z]+=)/;\$$1/g; eval "$_"; if (!($TYPE eq "disk" || $TYPE eq "part")) { next; }; if (exists($devs{$PKNAME})) { delete $devs{$PKNAME}; } if ($FSTYPE eq "" && $MOUNTPOINT eq "" && ($PARTTYPE eq "" || $PARTTYPE eq "0x0") && (int($SIZE) > 3221225472)) { $devs{$NAME} = "/dev/$NAME"; } }; print join(" ",values(%devs))."\n"' > /tmp/devs
-    DEVS=`cat /tmp/devs`
-    if [ -n "$DEVS" ]; then
-	$SUDO pvcreate $DEVS && $SUDO vgcreate $VGNAME $DEVS
-	if [ ! $? -eq 0 ]; then
-	    echo "ERROR: failed to create PV/VG with '$DEVS'; falling back to mkextrafs.pl"
-	    $SUDO vgremove $VGNAME
-	    $SUDO pvremove $DEVS
-	    DONE=0
-	else
-	    DONE=1
-	fi
-    fi
-
+#    $SUDO lsblk -n -P -b -o NAME,FSTYPE,MOUNTPOINT,PARTTYPE,PARTUUID,TYPE,PKNAME,SIZE | perl -e 'my %devs = (); while (<STDIN>) { $_ =~ s/([A-Z0-9a-z]+=)/;\$$1/g; eval "$_"; if (!($TYPE eq "disk" || $TYPE eq "part")) { next; }; if (exists($devs{$PKNAME})) { delete $devs{$PKNAME}; } if ($FSTYPE eq "" && $MOUNTPOINT eq "" && ($PARTTYPE eq "" || $PARTTYPE eq "0x0") && (int($SIZE) > 3221225472)) { $devs{$NAME} = "/dev/$NAME"; } }; print join(" ",values(%devs))."\n"' > /tmp/devs
+#    DEVS=`cat /tmp/devs`
+#    if [ -n "$DEVS" ]; then
+#	$SUDO pvcreate $DEVS && $SUDO vgcreate $VGNAME $DEVS
+#	if [ ! $? -eq 0 ]; then
+#	    echo "ERROR: failed to create PV/VG with '$DEVS'; falling back to mkextrafs.pl"
+#	    $SUDO vgremove $VGNAME
+#	    $SUDO pvremove $DEVS
+#	    DONE=0
+#	else
+#	    DONE=1
+#	fi
+#    fi
+	DONE=1
     if [ $DONE -eq 0 ]; then
 	$SUDO /usr/local/etc/emulab/mkextrafs.pl ${MKEXTRAFS_ARGS}
 	if [ $? -ne 0 ]; then
