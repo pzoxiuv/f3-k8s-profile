@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: f3-ceph-pod2
+spec:
+  nodeName: kubes2
+  restartPolicy: Never
+  containers:
+  - image: ubuntu
+    name: test-container
+    command: ["tail", "-f", "/dev/null"]
+    volumeMounts:
+      - mountPath: /var/cephdata/
+        name: cephpvc
+      - mountPath: /var/f3data/
+        name: f3pvc
+  volumes:
+   - name: cephpvc
+     persistentVolumeClaim:
+       claimName: ceph-pvc
+       readOnly: false
+   - name: f3pvc
+     persistentVolumeClaim:
+       claimName: f3-pvc
+       readOnly: false
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ceph-pvc
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Mi
+  storageClassName: rook-cephfs
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: f3-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Mi
+  storageClassName: kubes1-f3

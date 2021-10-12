@@ -1,0 +1,8 @@
+Basically make a version of run.sh where we launch many readers, and also a
+version where we have many writers.
+
+Maybe just make it configurable?  So have n writers, m readers, and each reader
+reads from p writers.  Wrap around when mapping readers to writers, so reader 0
+reads from writers [0,q], reader 1 reads from [q,2*q], etc. where q is p % m.
+
+See t.py

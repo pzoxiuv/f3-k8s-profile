@@ -150,5 +150,13 @@ for dir in docker kubelet ; do
         | $SUDO tee -a /etc/fstab
 done
 
+$SUDO mkfs.ext4 /dev/sda4
+$SUDO mkdir /mnt/local-cache
+$SUDO mount /dev/sda4 /mnt/local-cache
+$SUDO mkdir /mnt/local-cache/tempdir
+$SUDO chown -R amerenst:f3-PG0 /mnt/local-cache
+uuid=`ls -lha /dev/disk/by-uuid | grep sda4 | cut -d' ' -f10`
+echo "UUID=$uuid /mnt/local-cache ext4 defaults 0 0" | $SUDO tee -a /etc/fstab
+
 logtend "disk-space"
 touch $OURDIR/disk-space-done

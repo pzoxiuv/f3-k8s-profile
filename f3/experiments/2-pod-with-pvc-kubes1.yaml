@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: testing1-pod-kubes1-2
+  namespace: openwhisk
+spec:
+  nodeName: kubes1
+  restartPolicy: Never
+  containers:
+  - image: ubuntu
+    name: test
+    command: ["tail", "-f", "/dev/null"]
+      #lifecycle:
+      #postStart:
+      #  exec:
+      #    command: ["bash", "-c", "apt update && apt install -y python3 time netcat iproute2 ffmpeg python3-pip; pip3 install requests"]
+    volumeMounts:
+      - mountPath: /var/data/
+        name: data
+      - mountPath: /var/cephfs
+        name: ceph
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: testing1-f3-pvc
+  - name: ceph
+    persistentVolumeClaim:
+      claimName: testing1-ceph-pvc

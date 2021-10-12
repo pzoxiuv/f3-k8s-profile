@@ -1,0 +1,7 @@
+So when we get a NodePublishVolume, get the Ceph and F3 pvc names.  Then check
+if there's a f3-fuse-driver process running corresponding to those names.  If
+not, start a new process, with
+/var/lib/kubelet/plugins/kubernetes.io/csi/pv/<ceph pvc>/globalmount as the
+source dir and /var/lib/kubelet/plugins/kubernetes.io/csi/pv/<f3
+pvc>/globalmount as the workdir.  Then, bind mount the f3 pvc's globalmount to
+the target dir in the NodePublishVolume req.

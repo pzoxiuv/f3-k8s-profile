@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ceph-pod
+spec:
+  nodeName: kubes1
+  restartPolicy: Never
+  containers:
+  - image: ubuntu
+    name: test-container
+    command: ["tail", "-f", "/dev/null"]
+    volumeMounts:
+      - mountPath: /var/data/
+        name: mypvc
+  volumes:
+   - name: mypvc
+     persistentVolumeClaim:
+       claimName: ceph-pvc
+       readOnly: false
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ceph-pvc
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Mi
+  storageClassName: rook-cephfs
