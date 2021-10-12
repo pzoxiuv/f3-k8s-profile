@@ -8,10 +8,10 @@ kubectl cp -nopenwhisk writer-many f3-testing1-pod-kubes1:/writer-many
 kubectl cp -nopenwhisk writer-many f3-testing1-pod-kubes3:/writer-many
 kubectl cp -nopenwhisk reader-many f3-testing1-pod-kubes1:/reader-many
 kubectl cp -nopenwhisk reader-many f3-testing1-pod-kubes3:/reader-many
-kubectl cp -nopenwhisk ../../utils/ow-run f3-testing1-pod-kubes1:/ow-run
-kubectl cp -nopenwhisk ../ffmpeg/setup.sh f3-testing1-pod-kubes1:/setup.sh
-kubectl cp -nopenwhisk ~/vmtouch/vmtouch f3-testing1-pod-kubes1:/vmtouch
-kubectl cp -nopenwhisk ~/vmtouch/vmtouch f3-testing1-pod-kubes3:/vmtouch
+#kubectl cp -nopenwhisk ../../utils/ow-run f3-testing1-pod-kubes1:/ow-run
+#kubectl cp -nopenwhisk ../ffmpeg/setup.sh f3-testing1-pod-kubes1:/setup.sh
+kubectl cp -nopenwhisk vmtouch f3-testing1-pod-kubes1:/vmtouch
+kubectl cp -nopenwhisk vmtouch f3-testing1-pod-kubes3:/vmtouch
 
 kubectl cp -nopenwhisk consume.py f3-testing1-pod-kubes1:/consume.py
 kubectl cp -nopenwhisk consume.py f3-testing1-pod-kubes3:/consume.py

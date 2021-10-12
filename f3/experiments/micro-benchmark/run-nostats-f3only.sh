@@ -1,7 +1,5 @@
 #!/bin/bash
 
-
-
 FILESIZE=$(( $2 * 1024 * 1024 ))
 #FILESIZE=$(( $2 * 1024 ))
 
@@ -32,5 +30,5 @@ read_time=$(( $after2 - $before2 ))
 echo "$(( $after1 - $before1 )),$(( $after2 - $before2 )),$(( $write_time + $read_time )),$3,YYY"
 
 kubectl exec f3-testing1-pod-kubes1 -nopenwhisk -- rm $1
-sudo rm -rf /mnt/local-cache/tempdir/*
-ssh kubes3 sudo rm -rf /mnt/local-cache/tempdir/*
+sudo -u amerenst ssh node-1 sudo rm -rf /mnt/local-cache/tempdir/*
+sudo -u amerenst ssh node-2 sudo rm -rf /mnt/local-cache/tempdir/*
