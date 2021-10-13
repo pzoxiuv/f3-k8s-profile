@@ -105,6 +105,8 @@ fi
 
 sshkeyscan
 
+echo "AcceptEnv MYPID" | $SUDO tee -a /etc/ssh/sshd_config
+
 logtend "ssh-$EUID"
 
 touch $OURDIR/setup-ssh-$EUID-done

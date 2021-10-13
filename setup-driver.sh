@@ -31,4 +31,7 @@ else
     done
 fi
 
+echo "alias kc=kubectl" | tee -a ~/.bashrc
+echo "if [ -n $MYPID ]; then screen -dRRS $MYPID; fi" | tee -a ~/.bashrc
+
 exit 0
