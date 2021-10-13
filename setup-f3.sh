@@ -23,10 +23,7 @@ if [ -f $LOCALSETTINGS ]; then
 fi
 
 cd $SRC/ceph
-kubectl apply -f crds.yaml -f common.yaml -f operator.yaml
-kubectl apply -f cluster.yaml
-kubectl apply -f filesystem-test.yaml
-kubectl apply -f csi/cephfs/storageclass.yaml
+kubectl apply -f crds.yaml -f common.yaml -f operator.yaml -f cluster.yaml -f filesystem-test.yaml -f storageclass.yaml
 cd $SRC
 
 cd $SRC/nfs-all
