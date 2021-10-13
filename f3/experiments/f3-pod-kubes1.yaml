@@ -4,7 +4,7 @@ metadata:
   name: f3-testing1-pod-kubes1
   namespace: openwhisk
 spec:
-  nodeName: kubes1
+  nodeName: node-1
   restartPolicy: Never
   containers:
     #- image: quay.io/k8scsi/csi-attacher

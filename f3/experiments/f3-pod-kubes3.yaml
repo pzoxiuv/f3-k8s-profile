@@ -4,7 +4,7 @@ metadata:
   name: f3-testing1-pod-kubes3
   namespace: openwhisk
 spec:
-  nodeName: kubes3
+  nodeName: node-2
   restartPolicy: Never
   containers:
   #- image: ubuntu
