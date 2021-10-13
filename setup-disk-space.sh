@@ -140,15 +140,6 @@ if [ $LVM -eq 1 ]; then
     $SUDO mount ${STORAGEDIR}
 fi
 
-#
-# Redirect some Docker/k8s dirs into our extra storage.
-#
-for dir in docker kubelet ; do
-    $SUDO mkdir -p $STORAGEDIR/$dir /var/lib/$dir
-    $SUDO mount -o bind $STORAGEDIR/$dir /var/lib/$dir
-    echo "$STORAGEDIR/$dir /var/lib/$dir none defaults,bind 0 0" \
-        | $SUDO tee -a /etc/fstab
-done
 
 $SUDO mkfs.ext4 /dev/sda4
 $SUDO mkdir /mnt/local-cache
@@ -157,6 +148,16 @@ $SUDO mkdir /mnt/local-cache/tempdir
 $SUDO chown -R amerenst:f3-PG0 /mnt/local-cache
 uuid=`ls -lha /dev/disk/by-uuid | grep sda4 | cut -d' ' -f10`
 echo "UUID=$uuid /mnt/local-cache ext4 defaults 0 0" | $SUDO tee -a /etc/fstab
+
+#
+# Redirect some Docker/k8s dirs into our extra storage.
+#
+for dir in docker kubelet ; do
+    $SUDO mkdir -p /mnt/local-cache/$dir /var/lib/$dir
+    $SUDO mount -o bind /mnt/local-cache/$dir /var/lib/$dir
+    echo "/mnt/local-cache/$dir /var/lib/$dir none defaults,bind 0 0" \
+        | $SUDO tee -a /etc/fstab
+done
 
 logtend "disk-space"
 touch $OURDIR/disk-space-done
