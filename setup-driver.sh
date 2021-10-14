@@ -24,6 +24,8 @@ if [ "$HOSTNAME" = "node-0" ]; then
 	cd $SRC
 	$SRC/$script | tee - $OURDIR/${script}.log 2>&1
     done
+	echo "if [ -n \$MYPID ]; then screen -dRRS \$MYPID; fi" | tee -a ~/.bashrc
+	echo "AcceptEnv MYPID" | $SUDO tee -a /etc/ssh/sshd_config
 else
     for script in $WORKERNODESCRIPTS ; do
 	cd $SRC
@@ -32,6 +34,5 @@ else
 fi
 
 echo "alias kc=kubectl" | tee -a ~/.bashrc
-echo "if [ -n $MYPID ]; then screen -dRRS $MYPID; fi" | tee -a ~/.bashrc
 
 exit 0
