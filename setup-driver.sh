@@ -2,7 +2,7 @@
 
 set -x
 
-ALLNODESCRIPTS="setup-ssh.sh setup-disk-space.sh"
+ALLNODESCRIPTS="setup-ssh.sh setup-disk-space.sh setup-f3-extras.sh"
 HEADNODESCRIPTS="setup-nfs-server.sh setup-nginx.sh setup-ssl.sh setup-kubespray.sh setup-kubernetes-extra.sh setup-f3.sh setup-end.sh"
 WORKERNODESCRIPTS="setup-nfs-client.sh"
 
@@ -32,7 +32,5 @@ else
 	$SRC/$script | tee - $OURDIR/${script}.log 2>&1
     done
 fi
-
-echo "alias kc=kubectl" | tee -a ~/.bashrc
 
 exit 0
