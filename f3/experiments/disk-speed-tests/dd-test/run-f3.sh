@@ -24,8 +24,7 @@ for i in `seq 0 $ITER`; do
     kubectl wait --for=condition=ready pod f3-testing1-pod-kubes3 -nopenwhisk --timeout=200s
     bash -c "cd /local/repository/f3/experiments/micro-benchmark/; ./copy-files-f3.sh"
 
-    timeout 600
-	/local/repository/f3/experiments/micro-benchmark/run-nostats-f3only.sh /var/f3/f$i.id $1 $i >> $MYDIR/e2e-f3-$1$2
+    timeout 600 /local/repository/f3/experiments/micro-benchmark/run-nostats-f3only.sh /var/f3/f$i.id $1 $i >> $MYDIR/e2e-f3-$1$2
 
     kubectl delete -f /local/repository/f3/experiments/f3-pod-kubes1.yaml
     kubectl delete -f /local/repository/f3/experiments/f3-pod-kubes3.yaml
