@@ -24,7 +24,8 @@ for i in `seq 0 $ITER`; do
     kubectl wait --for=condition=ready pod f3-testing1-pod-kubes3 -nopenwhisk --timeout=200s
     bash -c "cd /local/repository/f3/experiments/micro-benchmark/; ./copy-files-f3.sh"
 
-    timeout 600 /local/repository/f3/experiments/micro-benchmark/run-nostats-f3only.sh /var/f3/f$i.id $1 $i >> $MYDIR/e2e-f3-$1
+    timeout 600
+	/local/repository/f3/experiments/micro-benchmark/run-nostats-f3only.sh /var/f3/f$i.id $1 $i >> $MYDIR/e2e-f3-$1$2
 
     kubectl delete -f /local/repository/f3/experiments/f3-pod-kubes1.yaml
     kubectl delete -f /local/repository/f3/experiments/f3-pod-kubes3.yaml
@@ -41,7 +42,7 @@ for i in `seq 0 $ITER`; do
     sudo -u amerenst ssh node-1 sudo /local/repository/f3/experiments/disk-speed-tests/dd-test/do-write-test.sh $i $COUNT
 
     echo "---"
-    } >> $MYDIR/write-f3-$1 2>&1
+    } >> $MYDIR/write-f3-$1$2 2>&1
 
     {
     date
@@ -50,7 +51,7 @@ for i in `seq 0 $ITER`; do
     sudo -u amerenst ssh node-1 sudo /local/repository/f3/experiments/disk-speed-tests/dd-test/do-write-direct-test.sh $i $COUNT
 
     echo "---"
-    } >> $MYDIR/write-direct-f3-$1 2>&1
+    } >> $MYDIR/write-direct-f3-$1$2 2>&1
 
     {
     date
@@ -59,7 +60,7 @@ for i in `seq 0 $ITER`; do
     sudo -u amerenst ssh node-1 sudo /local/repository/f3/experiments/disk-speed-tests/dd-test/do-read-test.sh $i $COUNT
 
     echo "---"
-    } >> $MYDIR/read-f3-$1 2>&1
+    } >> $MYDIR/read-f3-$1$2 2>&1
 
     {
     date
@@ -68,7 +69,7 @@ for i in `seq 0 $ITER`; do
     sudo -u amerenst ssh node-1 sudo /local/repository/f3/experiments/disk-speed-tests/dd-test/do-read-direct-test.sh $i $COUNT
 
     echo "---"
-    } >> $MYDIR/read-direct-f3-$1 2>&1
+    } >> $MYDIR/read-direct-f3-$1$2 2>&1
 #
 ##    {
 ##    date
