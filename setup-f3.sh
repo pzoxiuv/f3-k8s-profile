@@ -34,6 +34,7 @@ cd $SRC
 cd $SRC/openwhisk-deploy-kube
 kubectl label node  openwhisk-role=invoker --all
 helm install owdev ./helm/openwhisk -n openwhisk --create-namespace -f mycluster.yaml
+kubectl apply -f rbac.yaml
 cd $SRC
 
 cd $SRC/f3/csi
