@@ -159,5 +159,11 @@ for dir in docker kubelet ; do
         | $SUDO tee -a /etc/fstab
 done
 
+# Also move /storage/nfs:
+$SUDO mkdir -p /mnt/local-cache/nfs /storage/nfs
+$SUDO mount -o bind /mnt/local-cache/nfs /storage/nfs
+echo "/mnt/local-cache/nfs /storage/nfs none defaults,bind 0 0" \
+	| $SUDO tee -a /etc/fstab
+
 logtend "disk-space"
 touch $OURDIR/disk-space-done
