@@ -25,7 +25,7 @@ fi
 cd $SRC/ceph
 kubectl apply -f crds.yaml -f common.yaml -f operator.yaml
 sleep 10
-kubectl apply -f cluster.yaml -f filesystem-test.yaml -f storageclass.yaml
+kubectl apply -f cluster.yaml -f filesystem.yaml -f storageclass.yaml -f filesystem-replicated.yaml -f storageclass-replicated.yaml
 cd $SRC
 
 cd $SRC/nfs-all
