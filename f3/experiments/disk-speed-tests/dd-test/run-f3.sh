@@ -29,8 +29,12 @@ for i in `seq 0 $ITER`; do
     kubectl delete -f /local/repository/f3/experiments/f3-pod-kubes1.yaml
     kubectl delete -f /local/repository/f3/experiments/f3-pod-kubes3.yaml
     kubectl delete -f /local/repository/f3/experiments/f3-only-pvc.yaml
-    kubectl rollout restart ds csi-f3-node
-    kubectl rollout status ds/csi-f3-node --timeout=300s
+    #kubectl rollout restart ds csi-f3-node
+    #kubectl rollout status ds/csi-f3-node --timeout=300s
+	kubectl delete pod `kubectl get pod -lapp=csi-f3-node -owide --field-selector spec.nodeName=node-1 --no-headers -o custom-columns=":metadata.name"`
+    kubectl delete pod `kubectl get pod -lapp=csi-f3-node -owide --field-selector spec.nodeName=node-2 --no-headers -o custom-columns=":metadata.name"`
+    kubectl wait --for=condition=ready pod `kubectl get pod -lapp=csi-f3-node -owide --field-selector spec.nodeName=node-1 --no-headers -o custom-columns=":metadata.name"` --timeout=200s
+    kubectl wait --for=condition=ready pod `kubectl get pod -lapp=csi-f3-node -owide --field-selector spec.nodeName=node-2 --no-headers -o custom-columns=":metadata.name"` --timeout=200s
 done
 
 #for i in `seq 0 $ITER`; do
