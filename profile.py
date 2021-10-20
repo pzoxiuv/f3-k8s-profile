@@ -199,6 +199,7 @@ pc.defineParameter(
     portal.ParameterType.BOOLEAN,True,
     longDescription="Enable Ceph",
     advanced=True)
+pc.defineParameter(
     "shareSSD","Share SSD",
     portal.ParameterType.BOOLEAN,False,
     longDescription="Share SSD between F3 and Ceph",
