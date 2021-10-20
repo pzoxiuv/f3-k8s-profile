@@ -31,71 +31,29 @@ for i in `seq 0 $ITER`; do
     kubectl delete -f /local/repository/f3/experiments/f3-pod-kubes1.yaml
     kubectl delete -f /local/repository/f3/experiments/f3-pod-kubes3.yaml
     kubectl delete -f /local/repository/f3/experiments/f3-only-pvc.yaml
-    #kubectl rollout restart ds csi-f3-node
-    #kubectl rollout status ds/csi-f3-node --timeout=300s
+
+    kubectl apply -f /local/repository/f3/experiments/f3-only-pvc.yaml
+    kubectl apply -f /local/repository/f3/experiments/f3-pod-kubes1.yaml
+    kubectl apply -f /local/repository/f3/experiments/f3-pod-kubes3.yaml
+    kubectl wait --for=condition=ready pod f3-testing1-pod-kubes1 -nopenwhisk --timeout=200s
+    kubectl wait --for=condition=ready pod f3-testing1-pod-kubes3 -nopenwhisk --timeout=200s
+
+    {
+    echo "DDD,`date +%s`"
+    /usr/bin/time -f "TOTAL,%e,$i" kubectl exec -ti f3-testing1-pod-kubes1 -nopenwhisk -- bash -c "dd if=/dev/zero of=/var/cephfs/f bs=4M count=$COUNT; sync"
+    echo "EEE,`date +%s`"
+    } >> $MYDIR/write-ceph-$1$2 2>&1
+
+    {
+    echo "FFF,`date +%s`"
+    /usr/bin/time -f "TOTAL,%e,$i" kubectl exec -ti f3-testing1-pod-kubes1 -nopenwhisk -- bash -c "dd if=/var/cephfs/f of=/dev/null bs=4M count=$COUNT; sync"
+    echo "GGG,`date +%s`"
+    } >> $MYDIR/read-ceph-$1$2 2>&1
+
+    kubectl delete -f /local/repository/f3/experiments/f3-pod-kubes1.yaml
+    kubectl delete -f /local/repository/f3/experiments/f3-pod-kubes3.yaml
+    kubectl delete -f /local/repository/f3/experiments/f3-only-pvc.yaml
 
 done
-
-#for i in `seq 0 $ITER`; do
-#    {
-#    date
-#    echo "AAA" `date +%s`
-#
-#    sudo -u amerenst ssh node-1 sudo /local/repository/f3/experiments/disk-speed-tests/dd-test/do-write-test.sh $i $COUNT
-#
-#    echo "---"
-#    } >> $MYDIR/write-f3-$1$2 2>&1
-#
-#    {
-#    date
-#    echo "AAA" `date +%s`
-#
-#    sudo -u amerenst ssh node-1 sudo /local/repository/f3/experiments/disk-speed-tests/dd-test/do-write-direct-test.sh $i $COUNT
-#
-#    echo "---"
-#    } >> $MYDIR/write-direct-f3-$1$2 2>&1
-#
-#    {
-#    date
-#    echo "AAA" `date +%s`
-#
-#    sudo -u amerenst ssh node-1 sudo /local/repository/f3/experiments/disk-speed-tests/dd-test/do-read-test.sh $i $COUNT
-#
-#    echo "---"
-#    } >> $MYDIR/read-f3-$1$2 2>&1
-#
-#    {
-#    date
-#    echo "AAA" `date +%s`
-#
-#    sudo -u amerenst ssh node-1 sudo /local/repository/f3/experiments/disk-speed-tests/dd-test/do-read-direct-test.sh $i $COUNT
-#
-#    echo "---"
-#    } >> $MYDIR/read-direct-f3-$1$2 2>&1
-##
-###    {
-###    date
-###    echo "AAA" `date +%s`
-###
-###    sudo -u amerenst sudo -u amerenst ssh kubes3 iperf -c 130.245.126.249 -n $1M
-###
-###    echo "---"
-###    } >> /local/repository/f3/experiments/disk-speed-tests/dd-test/iperf-k3-k1-1500-limit-1500-res-$1 2>&1
-###
-###    {
-###    date
-###    echo "AAA" `date +%s`
-###
-###    iperf -c 10.245.126.125 -n $1M
-###
-###    echo "---"
-###    } >> /local/repository/f3/experiments/disk-speed-tests/dd-test/iperf-k1-freenas-1500-limit-1500-res-$1 2>&1
-#
-#done
-
-#for i in `seq 0 $ITER`; do 
-#    timeout 600 sudo -u amerenst /local/repository/f3/experiments/micro-benchmark/run-nostats.sh /var/ceph/f$i $1 $i >> /local/repository/f3/experiments/disk-speed-tests/dd-test/e2e-ceph-after-ceph-$1
-#    timeout 600 sudo -u amerenst kubectl exec testing1-pod-kubes1 -nopenwhisk -- rm /var/ceph/f$i
-#done
 
 rm lock

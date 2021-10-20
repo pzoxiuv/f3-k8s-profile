@@ -9,7 +9,7 @@ touch lock
 
 COUNT=$(( $1 / 4 ))
 
-ITER=2
+ITER=0
 
 MYDIR=`dirname $0`
 
@@ -33,62 +33,62 @@ for i in `seq 0 $ITER`; do
     kubectl rollout status ds/csi-f3-node --timeout=300s
 done
 
-for i in `seq 0 $ITER`; do
-    {
-    date
-    echo "AAA" `date +%s`
-
-    sudo -u amerenst ssh node-1 sudo /local/repository/f3/experiments/disk-speed-tests/dd-test/do-write-test.sh $i $COUNT
-
-    echo "---"
-    } >> $MYDIR/write-f3-$1$2 2>&1
-
-    {
-    date
-    echo "AAA" `date +%s`
-
-    sudo -u amerenst ssh node-1 sudo /local/repository/f3/experiments/disk-speed-tests/dd-test/do-write-direct-test.sh $i $COUNT
-
-    echo "---"
-    } >> $MYDIR/write-direct-f3-$1$2 2>&1
-
-    {
-    date
-    echo "AAA" `date +%s`
-
-    sudo -u amerenst ssh node-1 sudo /local/repository/f3/experiments/disk-speed-tests/dd-test/do-read-test.sh $i $COUNT
-
-    echo "---"
-    } >> $MYDIR/read-f3-$1$2 2>&1
-
-    {
-    date
-    echo "AAA" `date +%s`
-
-    sudo -u amerenst ssh node-1 sudo /local/repository/f3/experiments/disk-speed-tests/dd-test/do-read-direct-test.sh $i $COUNT
-
-    echo "---"
-    } >> $MYDIR/read-direct-f3-$1$2 2>&1
+#for i in `seq 0 $ITER`; do
+#    {
+#    date
+#    echo "AAA" `date +%s`
 #
-##    {
-##    date
-##    echo "AAA" `date +%s`
+#    sudo -u amerenst ssh node-1 sudo /local/repository/f3/experiments/disk-speed-tests/dd-test/do-write-test.sh $i $COUNT
+#
+#    echo "---"
+#    } >> $MYDIR/write-f3-$1$2 2>&1
+#
+#    {
+#    date
+#    echo "AAA" `date +%s`
+#
+#    sudo -u amerenst ssh node-1 sudo /local/repository/f3/experiments/disk-speed-tests/dd-test/do-write-direct-test.sh $i $COUNT
+#
+#    echo "---"
+#    } >> $MYDIR/write-direct-f3-$1$2 2>&1
+#
+#    {
+#    date
+#    echo "AAA" `date +%s`
+#
+#    sudo -u amerenst ssh node-1 sudo /local/repository/f3/experiments/disk-speed-tests/dd-test/do-read-test.sh $i $COUNT
+#
+#    echo "---"
+#    } >> $MYDIR/read-f3-$1$2 2>&1
+#
+#    {
+#    date
+#    echo "AAA" `date +%s`
+#
+#    sudo -u amerenst ssh node-1 sudo /local/repository/f3/experiments/disk-speed-tests/dd-test/do-read-direct-test.sh $i $COUNT
+#
+#    echo "---"
+#    } >> $MYDIR/read-direct-f3-$1$2 2>&1
 ##
-##    sudo -u amerenst sudo -u amerenst ssh kubes3 iperf -c 130.245.126.249 -n $1M
-##
-##    echo "---"
-##    } >> /local/repository/f3/experiments/disk-speed-tests/dd-test/iperf-k3-k1-1500-limit-1500-res-$1 2>&1
-##
-##    {
-##    date
-##    echo "AAA" `date +%s`
-##
-##    iperf -c 10.245.126.125 -n $1M
-##
-##    echo "---"
-##    } >> /local/repository/f3/experiments/disk-speed-tests/dd-test/iperf-k1-freenas-1500-limit-1500-res-$1 2>&1
-
-done
+###    {
+###    date
+###    echo "AAA" `date +%s`
+###
+###    sudo -u amerenst sudo -u amerenst ssh kubes3 iperf -c 130.245.126.249 -n $1M
+###
+###    echo "---"
+###    } >> /local/repository/f3/experiments/disk-speed-tests/dd-test/iperf-k3-k1-1500-limit-1500-res-$1 2>&1
+###
+###    {
+###    date
+###    echo "AAA" `date +%s`
+###
+###    iperf -c 10.245.126.125 -n $1M
+###
+###    echo "---"
+###    } >> /local/repository/f3/experiments/disk-speed-tests/dd-test/iperf-k1-freenas-1500-limit-1500-res-$1 2>&1
+#
+#done
 
 #for i in `seq 0 $ITER`; do 
 #    timeout 600 sudo -u amerenst /local/repository/f3/experiments/micro-benchmark/run-nostats.sh /var/ceph/f$i $1 $i >> /local/repository/f3/experiments/disk-speed-tests/dd-test/e2e-ceph-after-ceph-$1
