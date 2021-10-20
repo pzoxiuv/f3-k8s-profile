@@ -33,6 +33,8 @@ fi
 $SUDO apt install -y ansible
 echo "node-[0:9]" | $SUDO tee -a /etc/ansible/hosts
 
+for i in `seq 1 9`; do ssh-keygen -R node-$i; ssh-keyscan -H node-$i >> ~/.ssh/known_hosts ; done
+
 if [ -n "$SHARESSD" -a $SHARESSD -eq 1 ]; then
 	ansible all -m shell -a "printf 'n\np\n1\n2048\n468851543\nw\n' | fdisk /dev/sdc" --become
 	ansible all -m shell -a "printf 'n\np\n2\n468852736\n937703087\nw\n' | fdisk /dev/sdc" --become
