@@ -194,6 +194,11 @@ pc.defineParameter(
     portal.ParameterType.BOOLEAN,False,
     longDescription="Force the default NFS volume to be exported `async`.  When enabled, clients will only be given asynchronous write behavior even if they request sync or write with sync flags.  This is dangerous, but some applications that rely on persistent storage cannot be configured to use more helpful sync options (e.g., fsync instead of O_DIRECT).  It will give you the absolute best performance, however.",
     advanced=True)
+pc.defineParameter(
+    "enableCeph","Enable Ceph"
+    portal.ParameterType.BOOLEAN,True,
+    longDescription="Enable Ceph",
+    advanced=True)
 
 #
 # Get any input parameter values that will override our defaults.

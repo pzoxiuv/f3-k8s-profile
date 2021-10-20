@@ -22,11 +22,13 @@ if [ -f $LOCALSETTINGS ]; then
     . $LOCALSETTINGS
 fi
 
-cd $SRC/ceph
-kubectl apply -f crds.yaml -f common.yaml -f operator.yaml
-sleep 10
-kubectl apply -f cluster.yaml -f filesystem.yaml -f storageclass.yaml -f filesystem-replicated.yaml -f storageclass-replicated.yaml
-cd $SRC
+if [ -n "$ENABLECEPH" -a $ENABLECEPH -eq 1 ]; then
+	cd $SRC/ceph
+	kubectl apply -f crds.yaml -f common.yaml -f operator.yaml
+	sleep 10
+	kubectl apply -f cluster.yaml -f filesystem.yaml -f storageclass.yaml -f filesystem-replicated.yaml -f storageclass-replicated.yaml
+	cd $SRC
+fi
 
 cd $SRC/nfs-all
 kubectl apply -f rbac.yaml -f provisioner.yaml -f sc.yaml
