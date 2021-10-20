@@ -199,6 +199,10 @@ pc.defineParameter(
     portal.ParameterType.BOOLEAN,True,
     longDescription="Enable Ceph",
     advanced=True)
+    "shareSSD","Share SSD",
+    portal.ParameterType.BOOLEAN,False,
+    longDescription="Share SSD between F3 and Ceph",
+    advanced=True)
 
 #
 # Get any input parameter values that will override our defaults.

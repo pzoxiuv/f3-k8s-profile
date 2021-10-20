@@ -30,6 +30,22 @@ if [ -n "$ENABLECEPH" -a $ENABLECEPH -eq 1 ]; then
 	cd $SRC
 fi
 
+$SUDO apt install -y ansible
+echo "node-[0:9]" | $SUDO tee -a /etc/ansible/hosts
+
+if [ -n "$SHARESSD" -a $SHARESSD -eq 1 ]; then
+	ansible all -m shell -a "printf 'n\np\n1\n2048\n468851543\nw\n' | fdisk /dev/sdc" --become
+	ansible all -m shell -a "printf 'n\np\n2\n468852736\n937703087\nw\n' | fdisk /dev/sdc" --become
+	ansible all -m shell -a "mkfs.ext4 /dev/sdc1" --become
+	ansible all -m shell -a "mount /dev/sdc1 /mnt/local-cache/tempdir" --become
+
+	cd $SRC/ceph
+	kubectl apply -f crds.yaml -f common.yaml -f operator.yaml
+	sleep 10
+	kubectl apply -f cluster-sharedssd.yaml -f filesystem.yaml -f storageclass.yaml
+	cd $SRC
+fi
+
 cd $SRC/nfs-all
 kubectl apply -f rbac.yaml -f provisioner.yaml -f sc.yaml
 kubectl patch storageclass all-nfs -p '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
