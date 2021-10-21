@@ -59,6 +59,7 @@ helm install owdev ./helm/openwhisk -n openwhisk --create-namespace -f mycluster
 kubectl apply -f rbac.yaml
 $SUDO mv wsk /usr/local/bin/
 wsk property set --apihost 10.10.1.1:31001 --auth "23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP"
+wsk -i action create cmd actions/cmd.py
 cd $SRC
 
 cd $SRC/f3/csi
