@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/time.h>
+#include <time.h>
 
 #define OHM (1024 * 1024 * 100)
 #define MS_OR_S(t) (t > 1000 ? t/1000 : t), (t > 1000 ? "s" : "ms")
@@ -63,15 +64,19 @@ int main(int argc, char **argv) {
 	int fd;
 	char *buf, *sc;
 	struct timeval a, b, c, d;
-	ssize_t len, total_bytes = 0, checkpoint;
+	ssize_t len, total_bytes = 0, checkpoint, target_size;
 	long unsigned int open_time, read_time, close_time;
 
-	if (argc != 2) {
-		fprintf(stderr, "usage: %s <file name>\n", argv[0]);
+	if (argc != 3) {
+		fprintf(stderr, "usage: %s <file name> <file size>\n", argv[0]);
 		goto out;
 	}
 
+	fprintf(stdout, "GGG start time %lu\n", (unsigned long)time(NULL));
+
     sc = get_sc_name(argv[1]);
+
+    target_size = strtol(argv[2], NULL, 10);
 
     GETTIME(a);
 	fd = open(argv[1], O_RDONLY);
@@ -94,6 +99,10 @@ int main(int argc, char **argv) {
     GETTIME(c);
     printf("\n");
 
+    if (total_bytes < target_size) {
+	    printf("!!!OOO!!!! only read %lu bytes wanted %lu\n", total_bytes, target_size);
+    }
+
 	close(fd);
     GETTIME(d);
 
@@ -112,6 +121,8 @@ int main(int argc, char **argv) {
     printf("%s,read,%lu,%lu,%lu,%lu,%lu,XXX\n", sc,open_time,read_time,close_time,close_time+read_time+open_time,total_bytes);
 
     get_stat();
+
+	fprintf(stdout, "RRR end time %lu\n", (unsigned long)time(NULL));
 
 out:
 	return 0;
