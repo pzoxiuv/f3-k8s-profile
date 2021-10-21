@@ -66,7 +66,7 @@ make local-k8s-install
 cd $SRC
 
 cd $SRC/f3
-wsk -i action create cmd actions/cmd.py
+wsk -i action create cmd openwhisk/actions/cmd.py
 cd $SRC
 
 logtend "f3"
