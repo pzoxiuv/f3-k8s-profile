@@ -67,6 +67,8 @@ cd $SRC
 
 cd $SRC/f3
 wsk -i action create cmd openwhisk/actions/cmd.py
+wsk -i action update cmd --timeout 1200
+wsk -i action update cmd --memory 1024
 cd $SRC
 
 logtend "f3"
