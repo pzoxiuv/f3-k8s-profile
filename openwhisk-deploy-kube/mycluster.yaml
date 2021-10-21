@@ -70,9 +70,9 @@ whisk:
     guest: "23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP"
   systemNameSpace: "/whisk.system"
   limits:
-    actionsInvokesPerminute: 600
-    actionsInvokesConcurrent: 300
-    triggersFiresPerminute: 600
+    actionsInvokesPerminute: 6000
+    actionsInvokesConcurrent: 3000
+    triggersFiresPerminute: 6000
     actionsSequenceMaxlength: 50
     actions:
       time:
@@ -122,7 +122,7 @@ whisk:
         retentionBytes: ""
         retentionMs: ""
   containerPool:
-    userMemory: "10240m"
+    userMemory: "1080g"
   runtimes: "runtimes.json"
   testing:
     includeTests: true
