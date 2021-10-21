@@ -11,7 +11,7 @@ kubectl exec f3-testing1-pod-kubes1 -nopenwhisk -- /vmtouch -q -e $1
 
 before1=$(($(date +%s%N)/1000000))
 #kubectl exec f3-testing1-pod-kubes1 -nopenwhisk -- /writer $1 $FILESIZE
-kubectl exec f3-testing1-pod-kubes1 -nopenwhisk -- bash -c "/writer $1 $FILESIZE; sync"
+kubectl exec f3-testing1-pod-kubes1 -nopenwhisk -- bash -c "/writer $1 $FILESIZE"
 after1=$(($(date +%s%N)/1000000))
 write_time=$(( $after1 - $before1 ))
 #echo "$(( $after1 - $before1 ))"
@@ -23,7 +23,7 @@ kubectl exec f3-testing1-pod-kubes3 -nopenwhisk -- ls -lh /var/f3 >/dev/null
 
 before2=$(($(date +%s%N)/1000000))
 #kubectl exec f3-testing1-pod-kubes3 -nopenwhisk -- /reader $1
-kubectl exec f3-testing1-pod-kubes3 -nopenwhisk -- bash -c "/reader $1 $FILESIZE; sync"
+kubectl exec f3-testing1-pod-kubes3 -nopenwhisk -- bash -c "/reader $1 $FILESIZE"
 after2=$(($(date +%s%N)/1000000))
 read_time=$(( $after2 - $before2 ))
 #echo $before2 $after2
