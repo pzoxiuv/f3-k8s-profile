@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/time.h>
+#include <time.h>
 
 #define BUFFER_SIZE (4 * 1024 * 1024)
 #define OHM (1024 * 1024 * 100)
@@ -78,6 +79,8 @@ int main(int argc, char **argv) {
 		goto out;
 	}
 
+	fprintf(stdout, "GGG start time %lu\n", (unsigned long)time(NULL));
+
     sc = get_sc_name(argv[1]);
 
 	target_size = strtol(argv[2], NULL, 10);
@@ -143,6 +146,8 @@ out2:
     printf("%s,write,%lu,%lu,%lu,%lu,%lu,XXX\n", sc,open_time,write_time,close_time,close_time+write_time+open_time,total_bytes);
 
     get_stat();
+
+	fprintf(stdout, "RRR end time %lu\n", (unsigned long)time(NULL));
 
 out:
 	return 0;
