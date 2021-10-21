@@ -104,8 +104,8 @@ int main(int argc, char **argv) {
 	while (total_bytes < target_size) {
 		//len = write(fd, rand_bin, 512);
 		//len = write(fd, rand_bin, rand_bin_len);
-        if (target_size < BUFFER_SIZE)
-            len = write(fd, buf, target_size);
+        if ((target_size-total_bytes) < BUFFER_SIZE)
+            len = write(fd, buf, (target_size-total_bytes));
         else
             len = write(fd, buf, BUFFER_SIZE);
 		if (len == -1) {
