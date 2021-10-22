@@ -4,6 +4,7 @@ import subprocess
 import json
 import sys
 import os
+import time
 
 INTERCEPT_PATH = '/mnt/intercept/intercept.so'
 MAX_DEPTH = 4
@@ -31,6 +32,9 @@ def main(d):
         if '__OW_ACTIVATION_ID' in env:
             metadata['activationID'] = env['__OW_ACTIVATION_ID']
 
+        f3log = open(os.path.join('/var/log/f3/', str(d['logging-dir']), env['__OW_ACTIVATION_ID']), 'w')
+        f3log.write(f'start,{time.time_ns() // 1000000}\n')
+
         if 'PATH' not in env:
             print('Why is PATH not here???')
             env['PATH'] = '/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
@@ -52,7 +56,10 @@ def main(d):
 
         env['__F3_PYTHON_STARTED'] = "yes"
         #env['LD_PRELOAD'] = INTERCEPT_PATH
+        f3log.write(f'subprocess_start,{time.time_ns() // 1000000}\n')
         proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, env=env, cwd=cwd)
+        f3log.write(f'end,{time.time_ns() // 1000000}\n')
+        f3log.close()
         #del env['LD_PRELOAD']
         del env['__F3_PYTHON_STARTED']
 

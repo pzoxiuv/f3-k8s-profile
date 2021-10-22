@@ -24,6 +24,9 @@ subjects:
   - kind: ServiceAccount
     name: pod-watcher-ow
     namespace: openwhisk
+  - kind: ServiceAccount
+    name: owdev-invoker
+    namespace: openwhisk
 roleRef:
   kind: ClusterRole
   name: pod-watcher-ow
