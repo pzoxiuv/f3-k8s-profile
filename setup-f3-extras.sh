@@ -29,5 +29,7 @@ $SUDO mkdir -p /var/log/dstat
 ($SUDO crontab -l ; echo "@reboot dstat --output /var/log/dstat/stats -T -cdngy 5") | $SUDO crontab -
 nohup $SUDO dstat --output /var/log/dstat/stats -T -cdngy 5 >/dev/null 2>&1 &
 
+$SUDO mkdir /var/log/f3
+
 logtend "f3-extras"
 touch $OURDIR/setup-f3-extras-done
