@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ceph-testing-pvc-replicated
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 1000Gi
+  storageClassName: rook-cephfs-replicated
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ceph-test-pod-replicated
+spec:
+  restartPolicy: Never
+  containers:
+  - image: centos:7
+    name: test
+    command: ["tail", "-f", "/dev/null"]
+    volumeMounts:
+      - mountPath: /var/data
+        name: test
+  volumes:
+  - name: test
+    persistentVolumeClaim:
+      claimName: ceph-testing-pvc-replicated
