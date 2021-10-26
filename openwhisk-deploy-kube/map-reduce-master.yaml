@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mr-master
+  namespace: openwhisk
+spec:
+  containers:
+  - name: mr-master
+    image: rishabh0202/mr-master:v4
+    imagePullPolicy: IfNotPresent
+    volumeMounts:
+    - name: nfs
+      mountPath: /var/data
+  volumes:
+  - name: nfs
+    persistentVolumeClaim:
+      claimName: nfs-nfs-pvc
