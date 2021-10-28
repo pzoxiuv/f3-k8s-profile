@@ -1,6 +1,7 @@
 #!/bin/sh
 
 DIRNAME=`dirname $0`
+FULLDIRNAME=$(dirname $(realpath $0))
 
 #
 # Setup our core vars
@@ -115,6 +116,12 @@ NFSMOUNTDIR=/nfs
 NFSASYNC=0
 ENABLECEPH=1
 
+if [ -f /etc/centos-release ] ; then
+	CENTOS=1
+else
+	CENTOS=0
+fi
+
 #
 # We have an 'admin' user that gets a random password that comes in from
 # geni-lib/rspec as a hash.
@@ -126,10 +133,12 @@ ADMIN_PASS_HASH=''
 #
 # Setup apt-get to not prompt us
 #
-if [ ! -e $OURDIR/apt-configured ]; then
-    echo "force-confdef" | $SUDO tee -a /etc/dpkg/dpkg.cfg.d/cloudlab
-    echo "force-confold" | $SUDO tee -a /etc/dpkg/dpkg.cfg.d/cloudlab
-    touch $OURDIR/apt-configured
+if [ ${CENTOS} -eq 0 ] ; then
+	if [ ! -e $OURDIR/apt-configured ]; then
+	    echo "force-confdef" | $SUDO tee -a /etc/dpkg/dpkg.cfg.d/cloudlab
+	    echo "force-confold" | $SUDO tee -a /etc/dpkg/dpkg.cfg.d/cloudlab
+	    touch $OURDIR/apt-configured
+	fi
 fi
 export DEBIAN_FRONTEND=noninteractive
 # -o Dpkg::Options::="--force-confold" -o Dpkg::Options::="--force-confdef" 
@@ -143,7 +152,11 @@ fi
 
 do_apt_update() {
     if [ ! -f $OURDIR/apt-updated -a "${DO_APT_UPDATE}" = "1" ]; then
-	$SUDO apt-get update
+	if [ ${CENTOS} -eq 0 ] ; then
+		$SUDO apt-get update
+	else
+		$SUDO yum check-update
+	fi
 	touch $OURDIR/apt-updated
     fi
 }
@@ -151,7 +164,11 @@ do_apt_update() {
 are_packages_installed() {
     retval=1
     while [ ! -z "$1" ] ; do
-	dpkg -s "$1" >/dev/null 2>&1
+	if [ ${CENTOS} -eq 0 ] ; then
+		dpkg -s "$1" >/dev/null 2>&1
+	else
+		yum list installed "$1" >/dev/null 2>&1
+	fi
 	if [ ! $? -eq 0 ] ; then
 	    retval=0
 	fi
@@ -164,7 +181,11 @@ maybe_install_packages() {
     if [ ! ${DO_APT_UPGRADE} -eq 0 ] ; then
         # Just do an install/upgrade to make sure the package(s) are installed
 	# and upgraded; we want to try to upgrade the package.
-	$APTGETINSTALL $@
+	if [ ${CENTOS} -eq 0 ] ; then
+	    $APTGETINSTALL $@
+        else
+            $SUDO yum install -y $@
+        fi
 	return $?
     else
 	# Ok, check if the package is installed; if it is, don't install.
@@ -180,7 +201,11 @@ maybe_install_packages() {
 	while [ ! -z "$1" ] ; do
 	    are_packages_installed $1
 	    if [ $? -eq 0 ]; then
-		$APTGETINSTALL $1
+		if [ ${CENTOS} -eq 0 ] ; then
+		    $APTGETINSTALL $1
+		else
+		    $SUDO yum install -y $1
+		fi
 		retval=`expr $retval \| $?`
 	    fi
 	    shift
@@ -204,7 +229,11 @@ if [ ! $? -eq 0 ]; then
 	# we must have python.
 	while [ ! $success -eq 0 ]; do
 	    do_apt_update
-	    $SUDO apt-get $DPKGOPTS install $APTGETINSTALLOPTS python3
+	    if [ ${CENTOS} -eq 0 ] ; then
+	        $SUDO apt-get $DPKGOPTS install $APTGETINSTALLOPTS python3
+            else
+	        $SUDO yum install -y python3
+            fi
 	    success=$?
 	done
 	PYTHON=python3
@@ -225,15 +254,34 @@ PYTHONBIN=`which $PYTHON`
 ##
 ## Grab our geni creds, and create a GENI credential cert
 ##
-are_packages_installed ${PYTHON}-cryptography ${PYTHON}-future \
-    ${PYTHON}-six ${PYTHON}-lxml ${PYTHON}-pip
+if [ ${CENTOS} -eq 0 ] ; then
+    are_packages_installed ${PYTHON}-cryptography ${PYTHON}-future \
+        ${PYTHON}-six ${PYTHON}-lxml ${PYTHON}-pip
+else
+    if [ $PYVERS -eq 2 ] ; then
+        are_packages_installed ${PYTHON}-cryptography ${PYTHON}-future \
+            ${PYTHON}-six ${PYTHON}-lxml ${PYTHON}-pip
+    else
+        are_packages_installed ${PYTHON}-pip
+    fi
+fi
 success=`expr $? = 0`
 # Keep trying again with updated cache forever;
 # we must have this package.
 while [ ! $success -eq 0 ]; do
     do_apt_update
-    $SUDO apt-get $DPKGOPTS install $APTGETINSTALLOPTS ${PYTHON}-cryptography \
-	${PYTHON}-future ${PYTHON}-six ${PYTHON}-lxml ${PYTHON}-pip
+
+    if [ ${CENTOS} -eq 0 ] ; then
+        $SUDO apt-get $DPKGOPTS install $APTGETINSTALLOPTS ${PYTHON}-cryptography \
+	    ${PYTHON}-future ${PYTHON}-six ${PYTHON}-lxml ${PYTHON}-pip
+    else
+        if [ $PYVERS -eq 2 ] ; then
+            $SUDO yum install -y ${PYTHON}-cryptography \
+	        ${PYTHON}-future ${PYTHON}-six ${PYTHON}-lxml ${PYTHON}-pip
+        else
+            $SUDO yum install -y ${PYTHON}-pip
+        fi
+    fi
     success=$?
 done
 
@@ -263,7 +311,7 @@ if [ ! -e ~/.ssl/encrypted.pem ]; then
 fi
 
 if [ ! -e $OURDIR/manifests.xml ]; then
-    $PYTHON $DIRNAME/getmanifests.py $OURDIR/manifests
+    $PYTHON $FULLDIRNAME/getmanifests.py $OURDIR/manifests
     if [ ! $? -eq 0 ]; then
 	# Fall back to geni-get
 	echo "WARNING: falling back to getting manifest from AM, not Portal -- multi-site experiments will not work fully!"
@@ -347,11 +395,19 @@ HOSTNAME=`cat ${BOOTDIR}/nickname | cut -f1 -d.`
 ARCH=`uname -m`
 
 # Check if our init is systemd
-dpkg-query -S /sbin/init | grep -q systemd
+if [ ${CENTOS} -eq 0 ] ; then
+    dpkg-query -S /sbin/init | grep -q systemd
+else
+    yum whatprovides /sbin/init | grep -q systemd
+fi
 HAVE_SYSTEMD=`expr $? = 0`
 
-. /etc/lsb-release
-DISTRIB_MAJOR=`echo $DISTRIB_RELEASE | cut -d. -f1`
+if [ ${CENTOS} -eq 0 ] ; then
+    . /etc/lsb-release
+    DISTRIB_MAJOR=`echo $DISTRIB_RELEASE | cut -d. -f1`
+else
+    DISTRIB_MAJOR=7
+fi
 if [ -e /etc/emulab/bossnode ]; then
     BOSSNODE=`cat /etc/emulab/bossnode`
 fi
@@ -477,50 +533,51 @@ done
 ##
 ## Setup our Ubuntu package mirror, if necessary.
 ##
-grep MIRRORSETUP $SETTINGS
-if [ ! $? -eq 0 ]; then
-    if [ ! "x${UBUNTUMIRRORHOST}" = "x" ]; then
-	oldstr='us.archive.ubuntu.com'
-	newstr="${UBUNTUMIRRORHOST}"
-
-	if [ ! "x${UBUNTUMIRRORPATH}" = "x" ]; then
-	    oldstr='us.archive.ubuntu.com/ubuntu'
-	    newstr="${UBUNTUMIRRORHOST}/${UBUNTUMIRRORPATH}"
-	fi
-
-	echo "*** Changing Ubuntu mirror from $oldstr to $newstr ..."
-	$SUDO sed -E -i.us.archive.ubuntu.com -e "s|(${oldstr})|$newstr|" /etc/apt/sources.list
-    fi
-
-    echo "MIRRORSETUP=1" >> $SETTINGS
-fi
-
-if [ ! -f $OURDIR/apt-updated -a "${DO_APT_UPDATE}" = "1" ]; then
-    #
-    # Attempt to handle old EOL releases; so far only need to handle utopic
-    #
-    . /etc/lsb-release
-    grep -q old-releases /etc/apt/sources.list
-    if [  $? != 0 -a "x${DISTRIB_CODENAME}" = "xutopic" ]; then
-	sed -i -re 's/([a-z]{2}\.)?archive.ubuntu.com|security.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list
-    fi
-    $SUDO apt-get update
-    touch $OURDIR/apt-updated
-fi
-
-if [ ! -f $OURDIR/apt-dist-upgraded -a "${DO_APT_DIST_UPGRADE}" = "1" ]; then
-    # First, mark grub packages not to be upgraded; we don't want an
-    # install going to the wrong place.
-    PKGS="grub-common grub-gfxpayload-lists grub-pc grub-pc-bin grub2-common"
-    for pkg in $PKGS; do
-	$SUDO apt-mark hold $pkg
-    done
-    $SUDO apt-get dist-upgrade -y
-    for pkg in $PKGS; do
-	$SUDO apt-mark unhold $pkg
-    done
-    touch $OURDIR/apt-dist-upgraded
-fi
+# Unsupported for us...
+#grep MIRRORSETUP $SETTINGS
+#if [ ! $? -eq 0 ]; then
+#    if [ ! "x${UBUNTUMIRRORHOST}" = "x" ]; then
+#	oldstr='us.archive.ubuntu.com'
+#	newstr="${UBUNTUMIRRORHOST}"
+#
+#	if [ ! "x${UBUNTUMIRRORPATH}" = "x" ]; then
+#	    oldstr='us.archive.ubuntu.com/ubuntu'
+#	    newstr="${UBUNTUMIRRORHOST}/${UBUNTUMIRRORPATH}"
+#	fi
+#
+#	echo "*** Changing Ubuntu mirror from $oldstr to $newstr ..."
+#	$SUDO sed -E -i.us.archive.ubuntu.com -e "s|(${oldstr})|$newstr|" /etc/apt/sources.list
+#    fi
+#
+#    echo "MIRRORSETUP=1" >> $SETTINGS
+#fi
+#
+#if [ ! -f $OURDIR/apt-updated -a "${DO_APT_UPDATE}" = "1" ]; then
+#    #
+#    # Attempt to handle old EOL releases; so far only need to handle utopic
+#    #
+#    . /etc/lsb-release
+#    grep -q old-releases /etc/apt/sources.list
+#    if [  $? != 0 -a "x${DISTRIB_CODENAME}" = "xutopic" ]; then
+#	sed -i -re 's/([a-z]{2}\.)?archive.ubuntu.com|security.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list
+#    fi
+#    $SUDO apt-get update
+#    touch $OURDIR/apt-updated
+#fi
+#
+#if [ ! -f $OURDIR/apt-dist-upgraded -a "${DO_APT_DIST_UPGRADE}" = "1" ]; then
+#    # First, mark grub packages not to be upgraded; we don't want an
+#    # install going to the wrong place.
+#    PKGS="grub-common grub-gfxpayload-lists grub-pc grub-pc-bin grub2-common"
+#    for pkg in $PKGS; do
+#	$SUDO apt-mark hold $pkg
+#    done
+#    $SUDO apt-get dist-upgrade -y
+#    for pkg in $PKGS; do
+#	$SUDO apt-mark unhold $pkg
+#    done
+#    touch $OURDIR/apt-dist-upgraded
+#fi
 
 
 
