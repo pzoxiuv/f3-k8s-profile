@@ -1,0 +1,15 @@
+1) tpch-bkp: needs to be present on the mounted volume
+    - tpch-dbgen: backup file
+    - queries.sql: 6 select queries
+
+2) dbgen-script: this creates tpc-h.db
+    - create_db.sh: shell script that calls sqlite-ddl and creates database
+    - Dockerfile:
+    - Makefile: make "SCALE_FACTOR=1" , "PATH_BKP=/mnt/local-cache/db"
+    - sqlite-ddl: DDL to define the database
+    - sqlite3-tpch-db.yaml: to create the job to create database
+
+3) query:
+    - Dockerfile:
+    - test_sql.cpp: this program uses tpc-h.db to execute queries in queries.sql
+    - tpch-query.yaml: to create the job for queries

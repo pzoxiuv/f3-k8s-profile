@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: haproxypod-srvfull
+  namespace: openwhisk
+  labels:
+    app: haproxypod-srvfull
+spec:
+  containers:
+    - name: haproxypod
+      image: docker.io/nsultany/haproxypod:test2
+      imagePullPolicy: Always
+      ports:
+        - containerPort: 5000
+          name: http
+      volumeMounts:
+        - name: haproxy-config
+          mountPath: /etc/haproxy/config/srvfull.cfg
+          subPath: srvfull.cfg
+      command: ["haproxy"]
+      args: ["-f", "/etc/haproxy/config/srvfull.cfg"]
+  volumes:
+    - name: haproxy-config
+      configMap:
+        name: haproxy-srvfull-config
+        items:
+          - key: srvfull.cfg
+            path: srvfull.cfg

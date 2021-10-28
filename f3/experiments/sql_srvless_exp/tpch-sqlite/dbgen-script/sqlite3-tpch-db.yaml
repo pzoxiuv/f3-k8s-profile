@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sqlite3-tpch-db
+spec:
+  template:
+    spec:
+      containers:
+      - name: sqlite3-tpch-db
+        image: docker.io/rishabh0202/sqlite3_tpch:v1
+        volumeMounts:
+        - name: db
+          mountPath: /mnt/local-cache/
+        command: ["make"]
+        args: ["SCALE_FACTOR=1" , "PATH_BKP=/mnt/local-cache/db"]
+      restartPolicy: Never
+      volumes:
+      - name: db
+        hostPath:
+          path: /mnt/local-cache/
+          type: Directory
+  backoffLimit: 1
