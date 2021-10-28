@@ -43,10 +43,10 @@ echo "STORAGEDIR=${STORAGEDIR}" >> $LOCALSETTINGS
 # rename it to the VG name we expect.
 $SUDO vgdisplay emulab
 if [ $? -eq 0 ]; then
-    if [ ! emulab = $VGNAME ]; then
-	$SUDO vgrename emulab $VGNAME
-	$SUDO sed -i -re "s/^(.*)(\/dev\/emulab)(.*)$/\1\/dev\/$VGNAME\3/" /etc/fstab
-    fi
+    #if [ ! emulab = $VGNAME ]; then
+    #	$SUDO vgrename emulab $VGNAME
+    #	$SUDO sed -i -re "s/^(.*)(\/dev\/emulab)(.*)$/\1\/dev\/$VGNAME\3/" /etc/fstab
+    #fi
     LVM=1
     echo "VGNAME=${VGNAME}" >> $LOCALSETTINGS
     echo "LVM=1" >> $LOCALSETTINGS
