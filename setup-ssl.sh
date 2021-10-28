@@ -4,6 +4,7 @@ set -x
 
 # Grab our libs
 BINDIR=`dirname $0`
+FULLBINDIR=$(dirname $(realpath $0))
 . "$BINDIR/setup-lib.sh"
 
 if [ -f $OURDIR/ssl-done ]; then
@@ -15,9 +16,9 @@ logtstart "ssl"
 if [ -z "$SSLCERTTYPE" ]; then
     echo "No SSL certs requested"
 elif [ "$SSLCERTTYPE" = "self" ]; then
-    $BINDIR/setup-self-signed-ssl.sh
+    $FULLBINDIR/setup-self-signed-ssl.sh
 elif [ "$SSLCERTTYPE" = "letsencrypt" ]; then
-    $BINDIR/setup-letsencrypt.sh
+    $FULLBINDIR/setup-letsencrypt.sh
 fi
 
 logtend "ssl"
