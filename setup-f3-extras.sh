@@ -24,7 +24,12 @@ fi
 
 echo "alias kc=kubectl" | tee -a ~/.bashrc
 
-$SUDO apt install -y dstat
+if [ ${CENTOS} -eq 0 ] ; then
+    $SUDO apt install -y dstat
+else
+    $SUDO yum install -y dstat
+fi
+
 $SUDO mkdir -p /var/log/dstat
 ($SUDO crontab -l ; echo "@reboot dstat --output /var/log/dstat/stats -T -cdngy 5") | $SUDO crontab -
 nohup $SUDO dstat --output /var/log/dstat/stats -T -cdngy 5 >/dev/null 2>&1 &
