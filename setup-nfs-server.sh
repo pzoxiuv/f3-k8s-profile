@@ -22,8 +22,13 @@ if [ -f $LOCALSETTINGS ]; then
     . $LOCALSETTINGS
 fi
 
-maybe_install_packages nfs-kernel-server
-service_stop nfs-kernel-server
+if [ ${CENTOS} -eq 0 ] ; then
+    maybe_install_packages nfs-kernel-server
+    service_stop nfs-kernel-server
+else
+    maybe_install_packags nfs-utils
+    service_stop nfs-server
+fi
 
 $SUDO mkdir -p $NFSEXPORTDIR
 $SUDO chmod 755 $NFSEXPORTDIR
@@ -48,8 +53,13 @@ service_enable rpc-statd
 service_restart rpc-statd
 service_enable nfs-idmapd
 service_restart nfs-idmapd
-service_enable nfs-kernel-server
-service_restart nfs-kernel-server
+if [ ${CENTOS} -eq 0 ] ; then
+    service_enable nfs-kernel-server
+    service_restart nfs-kernel-server
+else
+    service_enable nfs-server
+    service_restart nfs-server
+fi
 
 $SUDO mkdir -p $NFSMOUNTDIR
 $SUDO chmod 755 $NFSMOUNTDIR
