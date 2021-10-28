@@ -11,7 +11,14 @@ fi
 
 logtstart "nginx"
 
-maybe_install_packages nginx apache2-utils
+if [ ${CENTOS} -eq 0 ] ; then
+    maybe_install_packages nginx apache2-utils
+    WWWUSER=www-data
+else
+    maybe_install_packages nginx httpd-tools
+    WWWUSER=nginx
+fi
+
 # Handle case where nginx won't start because the default site (which is
 # enabled!) needs port 80, and apache might be listening there.
 #rm -f /etc/nginx/sites-available/default \
@@ -21,11 +28,11 @@ if [ ! $? -eq 0 ]; then
 fi
 
 echo "$ADMIN_PASS" | htpasswd -n -i admin | $SUDO tee -a /etc/nginx/htpasswd
-$SUDO chown www-data:root /etc/nginx/htpasswd
+$SUDO chown $WWWUSER:root /etc/nginx/htpasswd
 $SUDO chmod 660 /etc/nginx/htpasswd
 
 $SUDO mkdir /var/www/profile-private
-$SUDO chown www-data /var/www/profile-private
+$SUDO chown $WWWUSER /var/www/profile-private
 $SUDO mount -o bind,ro $WWWPRIV /var/www/profile-private/
 echo $WWWPRIV /var/www/profile-private none defaults,bind 0 0 | $SUDO tee -a /etc/fstab
 cat <<EOF | $SUDO tee /etc/nginx/sites-available/profile-private
@@ -50,7 +57,7 @@ $SUDO ln -s /etc/nginx/sites-available/profile-private \
 $SUDO mkdir -p /local/profile-public
 $SUDO chown $SWAPPER /local/profile-public
 $SUDO mkdir /var/www/profile-public
-$SUDO chown www-data /var/www/profile-public
+$SUDO chown $WWWUSER /var/www/profile-public
 $SUDO mount -o bind,ro $WWWPUB /var/www/profile-public/
 echo $WWWPUB /var/www/profile-public none defaults,bind 0 0 | $SUDO tee -a /etc/fstab
 cat <<EOF | $SUDO tee /etc/nginx/sites-available/profile-public
