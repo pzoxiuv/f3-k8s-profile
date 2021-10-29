@@ -86,6 +86,7 @@ chmod 644 $OURDIR/admin-token.txt
 cp -p ~/.kube/config $OURDIR/kubeconfig
 chmod 644 $OURDIR/kubeconfig
 
+maybe_install_packages pssh
 # Make $SWAPPER a member of the docker group, so that they can do stuff sans sudo.
 parallel-ssh -h $OURDIR/pssh.all-nodes sudo usermod -a -G docker $SWAPPER
 

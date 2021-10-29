@@ -380,6 +380,8 @@ if [ ! $? -eq 0 ]; then
 fi
 cd ..
 
+$SUDO cp /local/setup/inventories/kubernetes/artifacts/kubectl /usr/local/bin/
+
 $SUDO rm -rf /root/.kube
 $SUDO mkdir -p /root/.kube
 $SUDO cp -p $INVDIR/artifacts/admin.conf /root/.kube/config
