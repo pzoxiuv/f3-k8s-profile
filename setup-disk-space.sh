@@ -151,7 +151,7 @@ fi
 
 if [ "$HOSTNAME" = $ETCD_NODE ]; then
 	#$SUDO printf 'n\np\n2\n2048\n937703087\nw\n' | $SUDO fdisk /dev/sdc
-	$SUDO mkfs.ext4 /dev/sdc
+	$SUDO mkfs.ext4 -F /dev/sdc
 	$SUDO mkdir -p /mnt/ssd
 	$SUDO mount /dev/sdc /mnt/ssd
 	$SUDO mkdir -p /mnt/ssd/etcd
