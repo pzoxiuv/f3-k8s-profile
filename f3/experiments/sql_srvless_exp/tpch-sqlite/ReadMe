@@ -1,3 +1,5 @@
+Based on https://github.com/lovasoa/TPCH-sqlite 
+
 1) tpch-bkp: needs to be present on the mounted volume
     - tpch-dbgen: backup file
     - queries.sql: 6 select queries
