@@ -397,26 +397,29 @@ kubectl wait pod -n kube-system --for=condition=Ready --all
 # If helm is not installed, do that manually.  Seems that there is a
 # kubespray bug (release-2.11) that causes this.
 #
-which helm
-if [ ! $? -eq 0 -a -n "${HELM_VERSION}" ]; then
-    wget https://storage.googleapis.com/kubernetes-helm/helm-${HELM_VERSION}-linux-amd64.tar.gz
-    tar -xzvf helm-${HELM_VERSION}-linux-amd64.tar.gz
-    $SUDO mv linux-amd64/helm /usr/local/bin/helm
-
-    helm init --upgrade --force-upgrade --stable-repo-url "https://charts.helm.sh/stable"
-    kubectl create serviceaccount --namespace kube-system tiller
-    kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
-    kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
-    helm init --service-account tiller --upgrade
-    while [ 1 ]; do
-	helm ls
-	if [ $? -eq 0 ]; then
-	    break
-	fi
-	sleep 4
-    done
-    kubectl wait pod -n kube-system --for=condition=Ready --all
-fi
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+#which helm
+#if [ ! $? -eq 0 -a -n "${HELM_VERSION}" ]; then
+#    wget https://storage.googleapis.com/kubernetes-helm/helm-${HELM_VERSION}-linux-amd64.tar.gz
+#    tar -xzvf helm-${HELM_VERSION}-linux-amd64.tar.gz
+#    $SUDO mv linux-amd64/helm /usr/local/bin/helm
+#
+#    helm init --upgrade --force-upgrade --stable-repo-url "https://charts.helm.sh/stable"
+#    kubectl create serviceaccount --namespace kube-system tiller
+#    kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
+#    kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
+#    helm init --service-account tiller --upgrade
+#    while [ 1 ]; do
+#	helm ls
+#	if [ $? -eq 0 ]; then
+#	    break
+#	fi
+#	sleep 4
+#    done
+#    kubectl wait pod -n kube-system --for=condition=Ready --all
+#fi
 
 logtend "kubespray"
 touch $OURDIR/kubespray-done
