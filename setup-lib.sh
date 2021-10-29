@@ -16,6 +16,8 @@ BOOTDIR=/var/emulab/boot
 TMCC=/usr/local/etc/emulab/tmcc
 SWAPPER=`geni-get user_urn | cut -f4 -d+`
 
+ETCD_NODE="node-0"
+
 if [ -z "$EUID" ]; then
     EUID=`id -u`
 fi
@@ -217,12 +219,15 @@ maybe_install_packages() {
 ##
 ## Figure out the system python version.
 ##
-python --version
-if [ ! $? -eq 0 ]; then
-    python3 --version
-    if [ $? -eq 0 ]; then
-	PYTHON=python3
-    else
+
+# We always just want to use python3:
+PYTHON=python3
+#python --version
+#if [ ! $? -eq 0 ]; then
+#    python3 --version
+#    if [ $? -eq 0 ]; then
+#	PYTHON=python3
+#    else
 	are_packages_installed python3
 	success=`expr $? = 0`
 	# Keep trying again with updated cache forever;
@@ -236,11 +241,11 @@ if [ ! $? -eq 0 ]; then
             fi
 	    success=$?
 	done
-	PYTHON=python3
-    fi
-else
-    PYTHON=python
-fi
+	#PYTHON=python3
+#    fi
+#else
+#    PYTHON=python
+#fi
 $PYTHON --version | grep -q "Python 3"
 if [ $? -eq 0 ]; then
     PYVERS=3

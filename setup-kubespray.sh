@@ -11,20 +11,24 @@ fi
 
 logtstart "kubespray"
 
-maybe_install_packages dma
-maybe_install_packages mailutils
-echo "$PFQDN" | $SUDO tee /etc/mailname
-sleep 2
-echo "Your ${EXPTTYPE} instance is setting up on $NFQDN ." \
-    |  mail -s "${EXPTTYPE} Instance Setting Up" ${SWAPPER_EMAIL} &
+if [ ${CENTOS} -eq 0 ] ; then
+    maybe_install_packages dma
+    maybe_install_packages mailutils
+    echo "$PFQDN" | $SUDO tee /etc/mailname
+    sleep 2
+    echo "Your ${EXPTTYPE} instance is setting up on $NFQDN ." \
+        |  mail -s "${EXPTTYPE} Instance Setting Up" ${SWAPPER_EMAIL} &
+fi
 
 # First, we need yq.
 are_packages_installed yq
 if [ ! $? -eq 1 ]; then
     if [ ! "$ARCH" = "aarch64" ]; then
-	$SUDO apt-key adv --keyserver keyserver.ubuntu.com --recv-keys CC86BB64
-	$SUDO add-apt-repository -y ppa:rmescandon/yq
-	maybe_install_packages yq
+	if [ ${CENTOS} -eq 0 ] ; then
+	    $SUDO apt-key adv --keyserver keyserver.ubuntu.com --recv-keys CC86BB64
+	    $SUDO add-apt-repository -y ppa:rmescandon/yq
+	    maybe_install_packages yq
+        fi
     fi
 fi
 which yq
@@ -58,13 +62,18 @@ if [ $KUBESPRAYUSEVIRTUALENV -eq 1 ]; then
 	maybe_install_packages libffi-dev
 	. $KUBESPRAY_VIRTUALENV/bin/activate
     else
-	maybe_install_packages virtualenv
+	if [ ${CENTOS} -eq 0 ] ; then
+	    maybe_install_packages virtualenv
+        else
+            maybe_install_packages python-virtualenv
+        fi
 
 	mkdir -p $KUBESPRAY_VIRTUALENV
 	virtualenv $KUBESPRAY_VIRTUALENV --python=${PYTHON}
 	. $KUBESPRAY_VIRTUALENV/bin/activate
     fi
     $PIP install -r kubespray/requirements.txt
+
     find $KUBESPRAY_VIRTUALENV -name ansible-playbook
     if [ ! $? -eq 0 ]; then
 	$PIP install ansible==2.9
@@ -99,23 +108,20 @@ for node in $NODES ; do
     fi
     echo "$node ansible_host=$mgmtip ip=$dataip access_ip=$accessip" >> $INV
 done
-# The first 2 nodes are kube-master.
+# The second node is kube-master, first is etcd
 echo '[kube-master]' >> $INV
-for node in `echo $NODES | cut -d ' ' -f-2` ; do
+for node in `echo $NODES | cut -d ' ' -f2` ; do
     echo "$node" >> $INV
 done
-# The first 3 nodes are etcd.
-etcdcount=3
-if [ $NODECOUNT -lt 3 ]; then
-    etcdcount=1
-fi
+# The first node is etcd.
+etcdcount=1
 echo '[etcd]' >> $INV
-for node in `echo $NODES | cut -d ' ' -f-$etcdcount` ; do
+for node in `echo $NODES | cut -d ' ' -f-1` ; do
     echo "$node" >> $INV
 done
-# The last 2--N nodes are kube-node, unless there is only one node, or
+# The last 3--N nodes are kube-node, unless there is only one node, or
 # if user allows.
-kubenodecount=2
+kubenodecount=3
 if [ $KUBEALLWORKERS -eq 1 -o "$NODES" = `echo $NODES | cut -d ' ' -f2` ]; then
     kubenodecount=1
 fi
@@ -287,6 +293,10 @@ kube_users:
 EOF
 #kube_api_anonymous_auth: false
 
+echo 'etcd_data_dir: "/mnt/ssd/etcd"' >> $INVDIR/group_vars/etcd.yml
+echo 'etcd_backup_prefix: "/mnt/ssd/backups"' >> $INVDIR/group_vars/etcd.yml
+echo 'etcd_memory_limit: "0"' >> $INVDIR/group_vars/etcd.yml
+
 #
 # Add MetalLB support.
 #
@@ -361,7 +371,7 @@ fi
 #
 cd $OURDIR/kubespray
 ansible-playbook -i $INVDIR/inventory.ini \
-    cluster.yml $METALLB_PLAYBOOK -e @${OVERRIDES} -b -v
+    cluster.yml $METALLB_PLAYBOOK -e @${OVERRIDES} -b -v -e 'ansible_python_interpreter=/usr/bin/python'
 
 if [ ! $? -eq 0 ]; then
     cd ..

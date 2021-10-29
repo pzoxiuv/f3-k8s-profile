@@ -140,6 +140,23 @@ if [ $LVM -eq 1 ]; then
     $SUDO mount ${STORAGEDIR}
 fi
 
+if [ -n "$SHARESSD" -a $SHARESSD -eq 1 ]; then
+	if [ "$HOSTNAME" != "$ETCD_NODE"]; then
+		printf 'n\np\n1\n2048\n468851543\nw\n' | $SUDO fdisk /dev/sdc --become
+		printf 'n\np\n2\n468852736\n937703087\nw\n' | $SUDO fdisk /dev/sdc --become
+		mkfs.ext4 /dev/sdc1 --become
+		mount /dev/sdc1 /mnt/local-cache/tempdir --become
+	fi
+fi
+
+if [ "$HOSTNAME" = $ETCD_NODE ]; then
+	#$SUDO printf 'n\np\n2\n2048\n937703087\nw\n' | $SUDO fdisk /dev/sdc
+	$SUDO mkfs.ext4 /dev/sdc
+	$SUDO mkdir -p /mnt/ssd
+	$SUDO mount /dev/sdc /mnt/ssd
+	$SUDO mkdir -p /mnt/ssd/etcd
+	$SUDO mkdir -p /mnt/ssd/backups
+fi
 
 $SUDO mkfs.ext4 /dev/sda4
 $SUDO mkdir /mnt/local-cache

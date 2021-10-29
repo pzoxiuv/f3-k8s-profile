@@ -35,18 +35,7 @@ echo "node-[0:9]" | $SUDO tee -a /etc/ansible/hosts
 
 for i in `seq 1 9`; do ssh-keygen -R node-$i; ssh-keyscan -H node-$i >> ~/.ssh/known_hosts ; done
 
-if [ -n "$SHARESSD" -a $SHARESSD -eq 1 ]; then
-	ansible all -m shell -a "printf 'n\np\n1\n2048\n468851543\nw\n' | fdisk /dev/sdc" --become
-	ansible all -m shell -a "printf 'n\np\n2\n468852736\n937703087\nw\n' | fdisk /dev/sdc" --become
-	ansible all -m shell -a "mkfs.ext4 /dev/sdc1" --become
-	ansible all -m shell -a "mount /dev/sdc1 /mnt/local-cache/tempdir" --become
-
-	cd $SRC/ceph
-	kubectl apply -f crds.yaml -f common.yaml -f operator.yaml
-	sleep 10
-	kubectl apply -f cluster-sharedssd.yaml -f filesystem.yaml -f storageclass.yaml
-	cd $SRC
-fi
+kubectl cordon $ETCD_NODE
 
 cd $SRC/nfs-all
 kubectl apply -f rbac.yaml -f provisioner.yaml -f sc.yaml -f nfs-nfs-pvc.yaml
