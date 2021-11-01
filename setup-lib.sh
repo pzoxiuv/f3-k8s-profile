@@ -285,6 +285,9 @@ while [ ! $success -eq 0 ]; do
 	        ${PYTHON}-future ${PYTHON}-six ${PYTHON}-lxml ${PYTHON}-pip
         else
             $SUDO yum install -y ${PYTHON}-pip
+			# some stuff uses python2 so install this stuff anyway
+            $SUDO yum install -y python-cryptography \
+	        python-future python-six python-lxml python-pip
         fi
     fi
     success=$?
