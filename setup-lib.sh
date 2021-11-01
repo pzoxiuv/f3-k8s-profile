@@ -270,7 +270,8 @@ else
         are_packages_installed ${PYTHON}-pip
     fi
 fi
-success=`expr $? = 0`
+#success=`expr $? = 0`
+success=1
 # Keep trying again with updated cache forever;
 # we must have this package.
 while [ ! $success -eq 0 ]; do
