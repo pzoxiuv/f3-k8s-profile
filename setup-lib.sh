@@ -132,6 +132,8 @@ ADMIN='admin'
 ADMIN_PASS=''
 ADMIN_PASS_HASH=''
 
+PATH=$PATH:/usr/local/bin
+
 #
 # Setup apt-get to not prompt us
 #
