@@ -26,7 +26,7 @@ if [ ${CENTOS} -eq 0 ] ; then
     maybe_install_packages nfs-kernel-server
     service_stop nfs-kernel-server
 else
-    maybe_install_packags nfs-utils
+    maybe_install_packages nfs-utils
     service_stop nfs-server
 fi
 
