@@ -316,7 +316,7 @@ if [ ! -e ~/.ssl/encrypted.pem ]; then
 fi
 
 if [ ! -e $OURDIR/manifests.xml ]; then
-    $PYTHON $FULLDIRNAME/getmanifests.py $OURDIR/manifests
+    python $FULLDIRNAME/getmanifests.py $OURDIR/manifests
     if [ ! $? -eq 0 ]; then
 	# Fall back to geni-get
 	echo "WARNING: falling back to getting manifest from AM, not Portal -- multi-site experiments will not work fully!"
