@@ -12,7 +12,7 @@ requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 # kc get secret owdev-whisk.auth -oyaml -nopenwhisk, this is the guest one
 # (maybe it's the same everywhere??)
 OW_AUTH='MjNiYzQ2YjEtNzFmNi00ZWQ1LThjNTQtODE2YWE0ZjhjNTAyOjEyM3pPM3haQ0xyTU42djJCS0sxZFhZRnBYbFBrY2NPRnFtMTJDZEFzTWdSVTRWck5aOWx5R1ZDR3VNREdJd1A='
-OW_SERVER='10.10.1.1'
+OW_SERVER='10.10.1.2'
 OW_ACTION='cmd'
 OW_BLOCKING_ACTION=True
 OW_GET_RESULT=True

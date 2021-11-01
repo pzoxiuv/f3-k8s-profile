@@ -49,7 +49,7 @@ whisk:
   # your cluster type for details on what values to provide and how to get them.
   ingress:
     awsSSL: "false"
-    apiHostName: "10.10.1.1"
+    apiHostName: "10.10.1.2"
     apiHostPort: 31001
     apiHostProto: "https"
     type: NodePort
