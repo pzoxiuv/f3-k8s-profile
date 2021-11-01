@@ -41,44 +41,44 @@ echo "STORAGEDIR=${STORAGEDIR}" >> $LOCALSETTINGS
 # Check to see if we already have an `emulab` VG.  This would occur
 # if the user requested a temp dataset.  If this happens, we simple
 # rename it to the VG name we expect.
-$SUDO vgdisplay emulab
-if [ $? -eq 0 ]; then
-    #if [ ! emulab = $VGNAME ]; then
-    #	$SUDO vgrename emulab $VGNAME
-    #	$SUDO sed -i -re "s/^(.*)(\/dev\/emulab)(.*)$/\1\/dev\/$VGNAME\3/" /etc/fstab
-    #fi
-    LVM=1
-    echo "VGNAME=${VGNAME}" >> $LOCALSETTINGS
-    echo "LVM=1" >> $LOCALSETTINGS
-elif [ -z "$LVM" ] ; then
-    LVM=1
-    DONE=0
-
-    #
-    # Handle unexpected partition layouts (e.g. no 4th partition on boot
-    # disk), and setup mkextrafs args, even if we're not going to use
-    # it.
-    #
-    MKEXTRAFS_ARGS="-l -v ${VGNAME} -m util -z 1024"
-    # On Cloudlab ARM machines, there is no second disk nor extra disk space
-    # Well, now there's a new partition layout; try it.
-    if [ "$ARCH" = "aarch64" -o "$ARCH" = "ppc64le" ]; then
-	maybe_install_packages gdisk
-	$SUDO sgdisk -i 1 /dev/sda
-	if [ $? -eq 0 ] ; then
-	    nparts=`sgdisk -p /dev/sda | grep -E '^ +[0-9]+ +.*$' | wc -l`
-	    if [ $nparts -lt 4 ]; then
-		newpart=`expr $nparts + 1`
-		$SUDO sgdisk -N $newpart /dev/sda
-		$SUDO partprobe /dev/sda
-		if [ $? -eq 0 ] ; then
-		    $SUDO partprobe /dev/sda
-		    # Add the new partition specifically
-		    MKEXTRAFS_ARGS="${MKEXTRAFS_ARGS} -s $newpart"
-		fi
-	    fi
-	fi
-    fi
+#$SUDO vgdisplay emulab
+#if [ $? -eq 0 ]; then
+#    #if [ ! emulab = $VGNAME ]; then
+#    #	$SUDO vgrename emulab $VGNAME
+#    #	$SUDO sed -i -re "s/^(.*)(\/dev\/emulab)(.*)$/\1\/dev\/$VGNAME\3/" /etc/fstab
+#    #fi
+#    LVM=1
+#    echo "VGNAME=${VGNAME}" >> $LOCALSETTINGS
+#    echo "LVM=1" >> $LOCALSETTINGS
+#elif [ -z "$LVM" ] ; then
+#    LVM=1
+#    DONE=0
+#
+#    #
+#    # Handle unexpected partition layouts (e.g. no 4th partition on boot
+#    # disk), and setup mkextrafs args, even if we're not going to use
+#    # it.
+#    #
+#    MKEXTRAFS_ARGS="-l -v ${VGNAME} -m util -z 1024"
+#    # On Cloudlab ARM machines, there is no second disk nor extra disk space
+#    # Well, now there's a new partition layout; try it.
+#    if [ "$ARCH" = "aarch64" -o "$ARCH" = "ppc64le" ]; then
+#	maybe_install_packages gdisk
+#	$SUDO sgdisk -i 1 /dev/sda
+#	if [ $? -eq 0 ] ; then
+#	    nparts=`sgdisk -p /dev/sda | grep -E '^ +[0-9]+ +.*$' | wc -l`
+#	    if [ $nparts -lt 4 ]; then
+#		newpart=`expr $nparts + 1`
+#		$SUDO sgdisk -N $newpart /dev/sda
+#		$SUDO partprobe /dev/sda
+#		if [ $? -eq 0 ] ; then
+#		    $SUDO partprobe /dev/sda
+#		    # Add the new partition specifically
+#		    MKEXTRAFS_ARGS="${MKEXTRAFS_ARGS} -s $newpart"
+#		fi
+#	    fi
+#	fi
+#    fi
 
     #
     # See if we can try to use an LVM instead of just the 4th partition.
@@ -96,49 +96,49 @@ elif [ -z "$LVM" ] ; then
 #	    DONE=1
 #	fi
 #    fi
-	DONE=1
-    if [ $DONE -eq 0 ]; then
-	$SUDO /usr/local/etc/emulab/mkextrafs.pl ${MKEXTRAFS_ARGS}
-	if [ $? -ne 0 ]; then
-	    $SUDO /usr/local/etc/emulab/mkextrafs.pl ${MKEXTRAFS_ARGS} -f
-	    if [ $? -ne 0 ]; then
-		$SUDO /usr/local/etc/emulab/mkextrafs.pl -f ${STORAGEDIR}
-		LVM=0
-	    fi
-	fi
-    fi
-
-    # Get integer total space (G) available.
-    VGTOTAL=`$SUDO vgs -o vg_size --noheadings --units G $VGNAME | sed -ne 's/ *\([0-9]*\)[0-9\.]*G/\1/p'`
-    echo "VGNAME=${VGNAME}" >> $LOCALSETTINGS
-    echo "VGTOTAL=${VGTOTAL}" >> $LOCALSETTINGS
-    echo "LVM=${LVM}" >> $LOCALSETTINGS
-fi
+#	DONE=1
+#    if [ $DONE -eq 0 ]; then
+#	$SUDO /usr/local/etc/emulab/mkextrafs.pl ${MKEXTRAFS_ARGS}
+#	if [ $? -ne 0 ]; then
+#	    $SUDO /usr/local/etc/emulab/mkextrafs.pl ${MKEXTRAFS_ARGS} -f
+#	    if [ $? -ne 0 ]; then
+#		$SUDO /usr/local/etc/emulab/mkextrafs.pl -f ${STORAGEDIR}
+#		LVM=0
+#	    fi
+#	fi
+#    fi
+#
+#    # Get integer total space (G) available.
+#    VGTOTAL=`$SUDO vgs -o vg_size --noheadings --units G $VGNAME | sed -ne 's/ *\([0-9]*\)[0-9\.]*G/\1/p'`
+#    echo "VGNAME=${VGNAME}" >> $LOCALSETTINGS
+#    echo "VGTOTAL=${VGTOTAL}" >> $LOCALSETTINGS
+#    echo "LVM=${LVM}" >> $LOCALSETTINGS
+#fi
 
 #
 # If using LVM, create an LV that is 70% of VGTOTAL.
 #
-if [ $LVM -eq 1 ]; then
-    LVNAME=k8s
-    echo "LVNAME=${LVNAME}" >> $LOCALSETTINGS
-    vgt=`expr $VGTOTAL - 1`
-    LV_SIZE=`perl -e "print 0.75 * $vgt;"`
-    echo "LV_SIZE=${LV_SIZE}" >> $LOCALSETTINGS
-
-    #$SUDO lvcreate -l 75%FREE -n $LVNAME $VGNAME
-    $SUDO lvcreate -L ${LV_SIZE}G -n $LVNAME $VGNAME
-
-    if [ -f /sbin/mkfs.ext4 ]; then
-	$SUDO mkfs.ext4 /dev/$VGNAME/$LVNAME
-	echo "/dev/$VGNAME/$LVNAME ${STORAGEDIR} ext4 defaults 0 0" \
-	    | $SUDO tee -a /etc/fstab
-    else
-	$SUDO mkfs.ext3 /dev/$VGNAME/$LVNAME
-	echo "/dev/$VGNAME/$LVNAME ${STORAGEDIR} ext3 defaults 0 0" \
-	    | $SUDO tee -a /etc/fstab
-    fi
-    $SUDO mount ${STORAGEDIR}
-fi
+#if [ $LVM -eq 1 ]; then
+#    LVNAME=k8s
+#    echo "LVNAME=${LVNAME}" >> $LOCALSETTINGS
+#    vgt=`expr $VGTOTAL - 1`
+#    LV_SIZE=`perl -e "print 0.75 * $vgt;"`
+#    echo "LV_SIZE=${LV_SIZE}" >> $LOCALSETTINGS
+#
+#    #$SUDO lvcreate -l 75%FREE -n $LVNAME $VGNAME
+#    $SUDO lvcreate -L ${LV_SIZE}G -n $LVNAME $VGNAME
+#
+#    if [ -f /sbin/mkfs.ext4 ]; then
+#	$SUDO mkfs.ext4 /dev/$VGNAME/$LVNAME
+#	echo "/dev/$VGNAME/$LVNAME ${STORAGEDIR} ext4 defaults 0 0" \
+#	    | $SUDO tee -a /etc/fstab
+#    else
+#	$SUDO mkfs.ext3 /dev/$VGNAME/$LVNAME
+#	echo "/dev/$VGNAME/$LVNAME ${STORAGEDIR} ext3 defaults 0 0" \
+#	    | $SUDO tee -a /etc/fstab
+#    fi
+#    $SUDO mount ${STORAGEDIR}
+#fi
 
 if [ -n "$SHARESSD" -a $SHARESSD -eq 1 ]; then
 	if [ "$HOSTNAME" != "$ETCD_NODE"]; then
