@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: testing-pod
+  namespace: openwhisk
+  labels:
+    app: stress-test
+spec:
+  restartPolicy: Never
+  containers:
+  - image: centos:7
+    name: test
+    command: ["tail", "-f", "/dev/null"]
+    resources:
+      limits:
+         memory: "1024Mi"
+         cpu: "250m"
+#    volumeMounts:
+#      - mountPath: /var/ceph
+#        name: ceph-nonf3
+#  volumes:
+#  - name: ceph-nonf3
+#    persistentVolumeClaim:
+#      claimName: testing1-ceph-nonf3-pvc-3
+#---
+#apiVersion: v1
+#kind: PersistentVolumeClaim
+#metadata:
+#  name: testing1-ceph-nonf3-pvc-3
+#  namespace: openwhisk
+#spec:
+#  accessModes:
+#  - ReadWriteMany
+#  resources:
+#    requests:
+#      storage: 1000Gi
+#  storageClassName: rook-cephfs
