@@ -49,7 +49,7 @@ pc.defineParameter(
 pc.defineParameter(
     "diskImage","Disk Image",
     portal.ParameterType.IMAGE,
-    "urn:publicid:IDN+emulab.net+image+emulab-ops//UBUNTU18-64-STD",
+    "urn:publicid:IDN+emulab.net+image+emulab-ops//CENTOS7-64-STD",
     advanced=True,
     longDescription="An image URN or URL that every node will run.")
 pc.defineParameter(
@@ -201,7 +201,7 @@ pc.defineParameter(
     advanced=True)
 pc.defineParameter(
     "shareSSD","Share SSD",
-    portal.ParameterType.BOOLEAN,False,
+    portal.ParameterType.BOOLEAN,True,
     longDescription="Share SSD between F3 and Ceph",
     advanced=True)
 
