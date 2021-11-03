@@ -110,7 +110,7 @@ for node in $NODES ; do
 done
 # The second node is kube-master, first is etcd
 echo '[kube-master]' >> $INV
-for node in `echo $NODES | cut -d ' ' -f2-4` ; do
+for node in `echo $NODES | cut -d ' ' -f2` ; do
     echo "$node" >> $INV
 done
 # The first node is etcd.
@@ -121,7 +121,7 @@ for node in `echo $NODES | cut -d ' ' -f-1` ; do
 done
 # The last 3--N nodes are kube-node, unless there is only one node, or
 # if user allows.
-kubenodecount=4
+kubenodecount=3
 if [ $KUBEALLWORKERS -eq 1 -o "$NODES" = `echo $NODES | cut -d ' ' -f2` ]; then
     kubenodecount=1
 fi
