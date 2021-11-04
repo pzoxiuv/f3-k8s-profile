@@ -145,6 +145,7 @@ if [ -n "$SHARESSD" -a $SHARESSD -eq 1 ]; then
 		printf 'n\np\n1\n2048\n468851543\nw\n' | $SUDO fdisk /dev/sdc
 		printf 'n\np\n2\n468852736\n937703087\nw\n' | $SUDO fdisk /dev/sdc
 		$SUDO mkfs.ext4 /dev/sdc1
+		$SUDO mkdir -p /mnt/local-cache/tempdir
 		$SUDO mount /dev/sdc1 /mnt/local-cache/tempdir
 	fi
 fi
