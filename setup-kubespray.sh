@@ -232,6 +232,10 @@ elif [ "$KUBENETWORKPLUGIN" = "canal" ]; then
 cat <<EOF >> $OVERRIDES
 kube_network_plugin: canal
 EOF
+elif [ "$KUBENETWORKPLUGIN" = "kube-router" ]; then
+cat <<EOF >> $OVERRIDES
+kube_network_plugin: kube-router
+EOF
 fi
 
 if [ "$KUBEENABLEMULTUS" = "1" ]; then
