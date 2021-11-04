@@ -260,22 +260,31 @@ kube_pods_subnet: $KUBEPODSSUBNET
 kube_service_addresses: $KUBESERVICEADDRESSES
 EOF
 
+#cat <<EOF >> $OVERRIDES
+#download_container: false
+#skip_downloads: false
+#etcd_deployment_type: host
+#container_manager: crio
+#crio_registries_mirrors:
+#  - prefix: docker.io
+#    insecure: false
+#    blocked: false
+#    location: registry-1.docker.io
+#    mirrors:
+#      - location: 192.168.100.100:5000
+#        insecure: true
+#      - location: mirror.gcr.io
+#        insecure: false
+#crio_pids_limit: 4096
+#EOF
+
 cat <<EOF >> $OVERRIDES
-download_container: false
-skip_downloads: false
+container_manager: containerd
 etcd_deployment_type: host
-container_manager: crio
-crio_registries_mirrors:
-  - prefix: docker.io
-    insecure: false
-    blocked: false
-    location: registry-1.docker.io
-    mirrors:
-      - location: 192.168.100.100:5000
-        insecure: true
-      - location: mirror.gcr.io
-        insecure: false
-crio_pids_limit: 4096
+containerd_registries:
+  "docker.io":
+    - "https://mirror.gcr.io"
+    - "https://registry-1.docker.io"
 EOF
 
 #
