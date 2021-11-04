@@ -169,7 +169,7 @@ echo "UUID=$uuid /mnt/local-cache ext4 defaults 0 0" | $SUDO tee -a /etc/fstab
 #
 # Redirect some Docker/k8s dirs into our extra storage.
 #
-for dir in docker kubelet ; do
+for dir in docker kubelet containerd ; do
     $SUDO mkdir -p /mnt/local-cache/$dir /var/lib/$dir
     $SUDO mount -o bind /mnt/local-cache/$dir /var/lib/$dir
     echo "/mnt/local-cache/$dir /var/lib/$dir none defaults,bind 0 0" \
