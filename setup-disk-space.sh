@@ -141,7 +141,7 @@ echo "STORAGEDIR=${STORAGEDIR}" >> $LOCALSETTINGS
 #fi
 
 if [ -n "$SHARESSD" -a $SHARESSD -eq 1 ]; then
-	if [ "$HOSTNAME" != "$ETCD_NODE"]; then
+	if [ "$HOSTNAME" != "$ETCD_NODE" ]; then
 		printf 'n\np\n1\n2048\n468851543\nw\n' | $SUDO fdisk /dev/sdc --become
 		printf 'n\np\n2\n468852736\n937703087\nw\n' | $SUDO fdisk /dev/sdc --become
 		mkfs.ext4 /dev/sdc1 --become
