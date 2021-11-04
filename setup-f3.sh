@@ -28,7 +28,12 @@ if [ -n "$ENABLECEPH" -a $ENABLECEPH -eq 1 ]; then
 	cd $SRC/ceph
 	kubectl apply -f crds.yaml -f common.yaml -f operator.yaml
 	sleep 10
-	kubectl apply -f cluster.yaml -f filesystem.yaml -f storageclass.yaml -f filesystem-replicated.yaml -f storageclass-replicated.yaml
+	if [ -n "$SHARESSD" -a $SHARESSD -eq 1 ]; then
+		kubectl apply -f cluster-sharedssd.yaml
+	else
+		kubectl apply -f cluster.yaml
+	fi
+	kubectl apply -f filesystem.yaml -f storageclass.yaml -f filesystem-replicated.yaml -f storageclass-replicated.yaml
 	cd $PREVDIR
 fi
 
