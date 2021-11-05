@@ -24,7 +24,7 @@ if [ "$HOSTNAME" = "node-0" ]; then
 	cd $SRC
 	$SRC/$script | tee - $OURDIR/${script}.log 2>&1
     done
-	echo "if [ -n \$MYPID ]; then screen -dRRS \$MYPID; fi" | tee -a ~/.bashrc
+	echo "if [ -n \$MYPID ] && [ "$TERM" != "dumb" ] && [ -z "$STY" ]; then screen -dRRS \$MYPID; fi" | tee -a ~/.bashrc
 	echo "AcceptEnv MYPID" | $SUDO tee -a /etc/ssh/sshd_config
 	$SUDO service sshd restart
 else
