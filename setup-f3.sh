@@ -68,5 +68,7 @@ wsk -i action update cmd --timeout 1200000
 wsk -i action update cmd --memory 1024
 cd $PREVDIR
 
+maybe_install_packages screen
+
 logtend "f3"
 touch $OURDIR/setup-f3-done
