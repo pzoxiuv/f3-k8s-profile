@@ -12,7 +12,7 @@ requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 # kc get secret owdev-whisk.auth -oyaml -nopenwhisk, this is the guest one
 # (maybe it's the same everywhere??)
 OW_AUTH='MjNiYzQ2YjEtNzFmNi00ZWQ1LThjNTQtODE2YWE0ZjhjNTAyOjEyM3pPM3haQ0xyTU42djJCS0sxZFhZRnBYbFBrY2NPRnFtMTJDZEFzTWdSVTRWck5aOWx5R1ZDR3VNREdJd1A='
-OW_SERVER='10.10.1.2'
+OW_SERVER='10.10.1.2:31001'
 OW_ACTION='cmd'
 OW_BLOCKING_ACTION=True
 OW_GET_RESULT=True
@@ -36,6 +36,9 @@ def wait_on_activation(activation_url, activation_id):
         i += INTERVAL
         time.sleep(INTERVAL)
 
+    print('TIMEOUT REACHED')
+    assert False
+
 def main(args):
     OW_ACTION_URL=f'https://{args.ow_server}/api/v1/namespaces/_/actions/{args.ow_action}'
     OW_ACTIVATION_URL=f'https://{args.ow_server}/api/v1/namespaces/_/activations/'
@@ -48,8 +51,10 @@ def main(args):
         r_json = json.loads(r.text.replace('\n', '\\n'))
         resp = wait_on_activation(OW_ACTIVATION_URL, r_json['activationId'])
         r_json = json.loads(resp)
-        print(f'stderr:\n{r_json["response"]["result"]["stderr"]}')
-        print(f'stdout:\n{r_json["response"]["result"]["stdout"]}')
+        if 'stderr' in r_json["response"]["result"]:
+            print(f'stderr:\n{r_json["response"]["result"]["stderr"]}')
+        if 'stdout' in r_json["response"]["result"]:
+            print(f'stdout:\n{r_json["response"]["result"]["stdout"]}')
     else:
         try:
             print(f'Status code: {r.status_code}')
