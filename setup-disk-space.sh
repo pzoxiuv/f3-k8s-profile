@@ -140,25 +140,6 @@ echo "STORAGEDIR=${STORAGEDIR}" >> $LOCALSETTINGS
 #    $SUDO mount ${STORAGEDIR}
 #fi
 
-if [ -n "$SHARESSD" -a $SHARESSD -eq 1 ]; then
-	if [ "$HOSTNAME" != "$ETCD_NODE" ]; then
-		printf 'n\np\n1\n2048\n468851543\nw\n' | $SUDO fdisk /dev/sdc
-		printf 'n\np\n2\n468852736\n937703087\nw\n' | $SUDO fdisk /dev/sdc
-		$SUDO mkfs.ext4 /dev/sdc1
-		$SUDO mkdir -p /mnt/local-cache/tempdir
-		$SUDO mount /dev/sdc1 /mnt/local-cache/tempdir
-	fi
-fi
-
-if [ "$HOSTNAME" = $ETCD_NODE ]; then
-	#$SUDO printf 'n\np\n2\n2048\n937703087\nw\n' | $SUDO fdisk /dev/sdc
-	$SUDO mkfs.ext4 -F /dev/sdc
-	$SUDO mkdir -p /mnt/ssd
-	$SUDO mount /dev/sdc /mnt/ssd
-	$SUDO mkdir -p /mnt/ssd/etcd
-	$SUDO mkdir -p /mnt/ssd/backups
-fi
-
 $SUDO mkfs.ext4 /dev/sda4
 $SUDO mkdir /mnt/local-cache
 $SUDO mount /dev/sda4 /mnt/local-cache
@@ -182,6 +163,29 @@ $SUDO mkdir -p /mnt/local-cache/nfs /storage/nfs
 $SUDO mount -o bind /mnt/local-cache/nfs /storage/nfs
 echo "/mnt/local-cache/nfs /storage/nfs none defaults,bind 0 0" \
 	| $SUDO tee -a /etc/fstab
+
+if [ -n "$SHARESSD" -a $SHARESSD -eq 1 ]; then
+	if [ "$HOSTNAME" != "$ETCD_NODE" ]; then
+		$SUDO pvcreate /dev/sdc
+		$SUDO vgcreate ssd /dev/sdc
+		$SUDO lvcreate -l 50%VG -n f3vol ssd
+		$SUDO lvcreate -l 50%VG -n cephvol ssd
+		$SUDO mkfs.ext4 /dev/ssd/f3vol
+		$SUDO mkdir -p /mnt/local-cache/tempdir
+		$SUDO mount /dev/ssd/f3vol /mnt/local-cache/tempdir
+		printf "%d:%d 209715200\n" `stat -c '%t' /dev/ssd/f3vol` `stat -c '%T' /dev/ssd/f3vol` | $SUDO tee /sys/fs/cgroup/blkio/blkio.throttle.{read,write}_bps_device
+		printf "%d:%d 209715200\n" `stat -c '%t' /dev/ssd/cephvol` `stat -c '%T' /dev/ssd/cephvol` | $SUDO tee /sys/fs/cgroup/blkio/blkio.throttle.{read,write}_bps_device
+	fi
+fi
+
+if [ "$HOSTNAME" = $ETCD_NODE ]; then
+	#$SUDO printf 'n\np\n2\n2048\n937703087\nw\n' | $SUDO fdisk /dev/sdc
+	$SUDO mkfs.ext4 -F /dev/sdc
+	$SUDO mkdir -p /mnt/ssd
+	$SUDO mount /dev/sdc /mnt/ssd
+	$SUDO mkdir -p /mnt/ssd/etcd
+	$SUDO mkdir -p /mnt/ssd/backups
+fi
 
 logtend "disk-space"
 touch $OURDIR/disk-space-done
