@@ -173,8 +173,8 @@ if [ -n "$SHARESSD" -a $SHARESSD -eq 1 ]; then
 		$SUDO mkfs.ext4 /dev/ssd/f3vol
 		$SUDO mkdir -p /mnt/local-cache/tempdir
 		$SUDO mount /dev/ssd/f3vol /mnt/local-cache/tempdir
-		printf "%d:%d 209715200\n" `stat -c '%t' /dev/ssd/f3vol` `stat -c '%T' /dev/ssd/f3vol` | $SUDO tee /sys/fs/cgroup/blkio/blkio.throttle.{read,write}_bps_device
-		printf "%d:%d 209715200\n" `stat -c '%t' /dev/ssd/cephvol` `stat -c '%T' /dev/ssd/cephvol` | $SUDO tee /sys/fs/cgroup/blkio/blkio.throttle.{read,write}_bps_device
+		lsblk | awk '/f3/{print $2" "209715200}'| $SUDO tee /sys/fs/cgroup/blkio/blkio.throttle.{read,write}_bps_device
+		lsblk | awk '/ceph/{print $2" "209715200}'| $SUDO tee /sys/fs/cgroup/blkio/blkio.throttle.{read,write}_bps_device
 	fi
 fi
 
