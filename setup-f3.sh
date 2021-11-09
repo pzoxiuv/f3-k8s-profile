@@ -26,6 +26,7 @@ PREVDIR=`pwd`
 SRC=/local/repository
 if [ -n "$ENABLECEPH" -a $ENABLECEPH -eq 1 ]; then
 	cd $SRC/ceph
+	./create-osd-pvs.sh
 	kubectl apply -f crds.yaml -f common.yaml -f operator.yaml
 	sleep 10
 	if [ -n "$SHARESSD" -a $SHARESSD -eq 1 ]; then

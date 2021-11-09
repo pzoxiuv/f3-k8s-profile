@@ -189,45 +189,22 @@ spec:
 #    osd: rook-ceph-osd-priority-class
 #    mgr: rook-ceph-mgr-priority-class
   storage: # cluster level storage configuration and selection
-    useAllNodes: true
-    useAllDevices: false
-    #deviceFilter: ^sdc
-    devicePathFilter: ^/dev/ssd/
-    config:
-      # crushRoot: "custom-root" # specify a non-default root label for the CRUSH map
-      # metadataDevice: "md0" # specify a non-rotational storage so ceph-volume will use it as block db device of bluestore.
-      # databaseSizeMB: "1024" # uncomment if the disks are smaller than 100 GB
-      # journalSizeMB: "1024"  # uncomment if the disks are 20 GB or smaller
-      # osdsPerDevice: "1" # this value can be overridden at the node or device level
-      # encryptedDevice: "true" # the default value for this option is "false"
-# Individual nodes and their config can be specified as well, but 'useAllNodes' above must be set to false. Then, only the named
-# nodes below will be used as storage resources.  Each node's 'name' field should match their 'kubernetes.io/hostname' label.
-#    nodes:
-#    - name: "kubes-worker"
-#      devices: # specific devices to use for storage can be specified for each node
-#      - name: "/dev/disk/by-id/scsi-36589cfc000000886ca9f17e273976849"
-#        #- name: "sdf"
-#      - name: "nvme01" # multiple osds can be created on high performance devices
-#        config:
-#          osdsPerDevice: "5"
-#      - name: "/dev/disk/by-id/ata-ST4000DM004-XXXX" # devices can be specified using full udev paths
-#      config: # configuration can be specified at the node level which overrides the cluster level config
-#        storeType: filestore
-#    - name: "172.17.4.301"
-#      deviceFilter: "^sd."
-#    - name: "kubes-stor"
-#      devices: # specific devices to use for storage can be specified for each node
-#      - name: "/dev/disk/by-id/scsi-36589cfc0000003e682f4d2a6524a14de"
-#        #- name: "/dev/disk/by-id/scsi-36589cfc00000038f7bd2c31ae98cb600-part1"
-#        #- name: "sde"
-#        #
-   #- name: "kubes3"
-   #  devices: # specific devices to use for storage can be specified for each node
-   #  - name: "sdd"
-   #- name: "kubes2"
-   #  devices: # specific devices to use for storage can be specified for each node
-   #  - name: "sdb"
-  # The section for configuring management of daemon disruptions during upgrade or fencing.
+    storageClassDeviceSets:
+    - name: set1
+      count: 8
+      portable: false
+      tuneFastDeviceClass: true
+      volumeClaimTemplates:
+      - metadata:
+          name: osd-data
+        spec:
+          resources:
+            requests:
+              storage: 223Gi
+          storageClassName: manual
+          volumeMode: Block
+          accessModes:
+          - ReadWriteOnce
   disruptionManagement:
     # If true, the operator will create and manage PodDisruptionBudgets for OSD, Mon, RGW, and MDS daemons. OSD PDBs are managed dynamically
     # via the strategy outlined in the [design](https://github.com/rook/rook/blob/master/design/ceph/ceph-managed-disruptionbudgets.md). The operator will
