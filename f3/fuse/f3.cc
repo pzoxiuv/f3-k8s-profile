@@ -280,6 +280,28 @@ out:
     return res;
 }
 
+static int f3_update_servers(int fd, char *servers) {
+    int res = 0;
+    auto saveerr = ENOMEM;
+
+    F3_LOG("%s", __func__);
+    auto newfd = f3_get_full_fd(fd, O_RDONLY);
+    if (newfd == -1) {
+        return 0;
+    }
+
+    res = fsetxattr(newfd, "user.f3.servers", servers, strlen(servers), 0);
+    if (res == -1) {
+        saveerr = errno;
+        goto out;
+    }
+
+out:
+    close(newfd);
+    errno = saveerr;
+    return res;
+}
+
 
 static int f3_mark_write_done(int fd) {
     int res = 0;
@@ -716,13 +738,14 @@ static int do_lookup(fuse_ino_t parent, const char *name,
                         F3_LOG("!!! %d", saverr);
                     }
                     if (inode.is_id) {
+                        F3_LOG("%s: inode: %p needs download: %d\n", __func__, &inode, inode.needs_download);
                         inode.needs_download = true;
                         inode.fname = (char *)malloc(PATH_MAX);
                         bzero(inode.fname, PATH_MAX);
                         f3_get_filepath(inode.fd, inode.fname, PATH_MAX);
-                        inode.servers = (char *)malloc(100);
-                        bzero(inode.servers, 100);
-                        f3_get_servers(inode.fd, inode.servers, 100);
+                        inode.servers = (char *)malloc(500);
+                        bzero(inode.servers, 500);
+                        f3_get_servers(inode.fd, inode.servers, 500);
                         inode.client_fd = setup_conn(client_uds_path.c_str());
                         if (inode.client_fd < 0) {
                             perror("setup_conn");
@@ -917,8 +940,10 @@ static void sfs_rmdir(fuse_req_t req, fuse_ino_t parent, const char *name) {
     Inode& inode_p = get_inode(parent);
     lock_guard<mutex> g {inode_p.m};
     auto res = unlinkat(inode_p.fd, name, AT_REMOVEDIR);
-    if (res == -1)
+    if (res == -1) {
         F3_REPLY_ERR(req, errno);
+        return;
+    }
     res = unlinkat(inode_p.id_fd, name, AT_REMOVEDIR);
     F3_REPLY_ERR(req, res == -1 ? errno : 0);
 }
@@ -935,8 +960,10 @@ static void sfs_rename(fuse_req_t req, fuse_ino_t parent, const char *name,
     }
 
     auto res = renameat(inode_p.fd, name, inode_np.fd, newname);
-    if (res == -1)
+    if (res == -1) {
         F3_REPLY_ERR(req, errno);
+        return;
+    }
     res = renameat(inode_p.id_fd, name, inode_np.id_fd, newname);
     F3_REPLY_ERR(req, res == -1 ? errno : 0);
 }
@@ -971,11 +998,15 @@ static void sfs_unlink(fuse_req_t req, fuse_ino_t parent, const char *name) {
         }
     }
     auto res = unlinkat(inode_p.fd, name, 0);
-    if (res == -1)
+    if (res == -1) {
         F3_REPLY_ERR(req, errno);
+        return;
+    }
     res = unlinkat(inode_p.id_fd, name, 0);
-    if (res == -1)
+    if (res == -1) {
         F3_REPLY_ERR(req, errno);
+        return;
+    }
 
     F3_REPLY_ERR(req, 0);
 }
@@ -1329,31 +1360,41 @@ static void sfs_open(fuse_req_t req, fuse_ino_t ino, fuse_file_info *fi) {
 
     if (inode.needs_download) {
         F3_LOG("Needs download %ld", inode.download_thread);
+        fflush(stderr);
 
-        char rel_path[PATH_MAX];
-        bzero(rel_path, PATH_MAX);
-        f3_get_filepath(inode.fd, rel_path, PATH_MAX);
-        char servers[100];
-        bzero(servers, 100);
-        f3_get_servers(inode.fd, servers, 100);
+        // Skip if already downloading?
+        if (inode.download_thread == 0) {
+            char rel_path[PATH_MAX];
+            bzero(rel_path, PATH_MAX);
+            f3_get_filepath(inode.fd, rel_path, PATH_MAX);
+            char *servers = (char *)malloc(500);
+            bzero(servers, 500);
+            f3_get_servers(inode.fd, servers, 500);
 
-        struct download_info *dl_info = (struct download_info *)malloc(sizeof(struct download_info));
-        dl_info->fd = inode.client_fd;
-        dl_info->path = strdup(rel_path);
-        dl_info->servers = strdup(servers);
-        dl_info->end_byte = 0;
-        dl_info->download_done = &inode.download_done;
-        auto ret = pthread_create(&inode.download_thread, NULL, download_file_thread, (void *)dl_info);
-        F3_LOG("%s: %s %d %ld %d\n", __func__, dl_info->path, dl_info->fd, inode.download_thread, ret);
-        if (ret < 0) {
-            perror("pthread_create?");
+            struct download_info *dl_info = (struct download_info *)malloc(sizeof(struct download_info));
+            dl_info->fd = inode.client_fd;
+            dl_info->path = strdup(rel_path);
+            dl_info->servers = strdup(servers);
+            dl_info->end_byte = 0;
+            dl_info->download_done = &inode.download_done;
+            auto ret = pthread_create(&inode.download_thread, NULL, download_file_thread, (void *)dl_info);
+            F3_LOG("%s: %s %d %ld %d\n", __func__, dl_info->path, dl_info->fd, inode.download_thread, ret);
+            if (ret < 0) {
+                perror("pthread_create?");
+            }
+
+            F3_LOG("%s: started download thread...? %ld\n", __func__, inode.download_thread);
+
+            inode.target_size = f3_get_size_xattr(inode.fd);
+            servers = strcat(servers, ",");
+            servers = strcat(servers, fs.address.c_str());
+            f3_update_servers(inode.fd, servers);
+            free(servers);
+            /*
+            auto ret = download_file(inode.client_fd, rel_path, servers, 0);
+            //inode.needs_download = false;
+            */
         }
-
-        inode.target_size = f3_get_size_xattr(inode.fd);
-        /*
-        auto ret = download_file(inode.client_fd, rel_path, servers, 0);
-        //inode.needs_download = false;
-        */
     }
 
     /* Unfortunately we cannot use inode.fd, because this was opened
@@ -1498,6 +1539,9 @@ static void sfs_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
             perror("stat");
         }
         timeout--;
+    }
+    if (timeout == 0) {
+        F3_LOG("%s: !!! timeout reached\n", __func__);
     }
     /*
     if (inode.needs_download && inode.bytes_downloaded < (off + size)) {
@@ -1692,8 +1736,10 @@ static void sfs_setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
     char procname[64];
     sprintf(procname, "/proc/self/fd/%i", inode.fd);
     ret = setxattr(procname, name, value, size, flags);
-    if (ret == -1)
+    if (ret == -1) {
         F3_REPLY_ERR(req, errno);
+        return;
+    }
 
     sprintf(procname, "/proc/self/fd/%i", inode.id_fd);
     ret = setxattr(procname, name, value, size, flags);
@@ -1710,13 +1756,17 @@ static void sfs_removexattr(fuse_req_t req, fuse_ino_t ino, const char *name) {
 
     sprintf(procname, "/proc/self/fd/%i", inode.fd);
     ret = removexattr(procname, name);
-    if (ret == -1)
+    if (ret == -1) {
         F3_REPLY_ERR(req, errno);
+        return;
+    }
 
     sprintf(procname, "/proc/self/fd/%i", inode.id_fd);
     ret = removexattr(procname, name);
-    if (ret == -1)
+    if (ret == -1) {
         F3_REPLY_ERR(req, errno);
+        return;
+    }
 
     ret = 0;
     if (strncmp(name, "user.f3.id", sizeof("user.f3.id")) == 0) {

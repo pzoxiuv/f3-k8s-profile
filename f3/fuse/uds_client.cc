@@ -61,32 +61,46 @@ int send_fname_done(int fd, char *fname) {
 long int download_file(int fd, char *path, char *servers, size_t end_byte) {
     int ret;
 
-	char buf[100];
-	bzero(buf, 100);
-	//printf("servers: %s path: %s\n", servers, path);
-	int len = snprintf(buf, sizeof(buf), "%s,%lu,%s\n", path, end_byte, servers);
+	char *buf = (char *)malloc(500);
+	bzero(buf, 500);
+	printf("downloading file!!!  servers: %s path: %s\n", servers, path);
+    fflush(stdout);
+	int len = snprintf(buf, 500, "%s,%lu,%s\n", path, end_byte, servers);
+	printf("here??????????\n");
+    fflush(stdout);
 	if (len < 0) {
+        perror("AAA snprintf");
+        fflush(stderr);
+        free(buf);
 		return -errno;
 	}
 
+    printf("writing %d %s\n", len, buf);
+    fflush(stdout);
 	ret = write(fd, buf, len);
 	if (ret < 0) {
+        perror("AAA write");
+        free(buf);
 		return -errno;
 	} else if (ret < len) {
 		fprintf(stderr, "partial write %d %d\n", ret, len);
 	}
-	//printf("Wrote >>>\n%s\n<<< (%d bytes)\n", buf, ret);
+	printf("Wrote >>>\n%s\n<<< (%d bytes)\n", buf, ret);
 
-    bzero(buf, sizeof(buf));
-    ret = read(fd, buf, sizeof(buf));
-    if (ret < 0)
+    bzero(buf, 500);
+    ret = read(fd, buf, 500);
+    if (ret < 0) {
+        perror("AAA read");
+        free(buf);
         return -errno;
+    }
 
-    //printf("Got buf %s\n", buf);
+    printf("Got buf %s\n", buf);
 
     // NAK
     if (buf[0] == 'N') {
         printf("Got NAK, buf: %s\n", buf);
+        free(buf);
         return -1;
     }
 
@@ -96,6 +110,8 @@ long int download_file(int fd, char *path, char *servers, size_t end_byte) {
 	// TODO: check for ACK response
 	//printf("read %s (%d bytes)\n", buf, ret);
     
+    free(buf);
+
 	return new_pos;
 }
 

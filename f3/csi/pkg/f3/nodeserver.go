@@ -18,18 +18,21 @@ package f3
 
 import (
 	"os"
-	"path"
+	//"path"
 	"sync"
 	"os/exec"
-	"io/ioutil"
+	//"io/ioutil"
 
+    "k8s.io/apimachinery/pkg/api/errors"
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/volume"
-	"k8s.io/utils/mount"
+	//"k8s.io/utils/mount"
+	mount "k8s.io/mount-utils"
+    corev1 "k8s.io/api/core/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -40,38 +43,80 @@ import (
 type NodeServer struct {
 	Driver  *Driver
 	mounter mount.Interface
+
+    // Maps volumeID to FUSE procs/count
 	fuseProcs map[string]*exec.Cmd
 	fuseProcsCount map[string]int
+
+    // Maps volumeID to namespace/PVC name
+    namespaceMap map[string]string
+    targetPVCMap map[string]string
+
 	lock sync.RWMutex
+}
+
+func getClientset() (*kubernetes.Clientset, error) {
+	config, err := rest.InClusterConfig()
+	config.BearerTokenFile = "/var/run/secrets/kubernetes.io/podwatcher/token"
+	if err != nil {
+        return &kubernetes.Clientset{}, err
+	}
+
+	return kubernetes.NewForConfig(config)
+}
+
+func deleteTargetPod(namespace, name string) (error) {
+    clientset, err := getClientset()
+    if err != nil {
+        return err
+    }
+
+	return clientset.CoreV1().Pods(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
 }
 
 // XXX This assumes that there's only one F3/FS PVC
 // Need to lookup label applied to pod (f3.action=xxx) and use that
 // as label selector in addition to fs.role
 func getPVCName(roleSelector, namespace string) (string, error) {
-	config, err := rest.InClusterConfig()
-	config.BearerTokenFile = "/var/run/secrets/kubernetes.io/podwatcher/token"
-	if err != nil {
-		return "", err
-	}
-	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
+    clientset, err := getClientset()
+    if err != nil {
         return "", err
-	}
+    }
 
 	pvcs, err := clientset.CoreV1().PersistentVolumeClaims(namespace).List(context.TODO(),
         metav1.ListOptions{LabelSelector: roleSelector})
-    klog.Info("pvcs", pvcs.Items[0])
-    klog.Info(roleSelector)
 	if err != nil {
 		panic(err.Error())
 	}
+    klog.Info("pvcs", pvcs.Items[0])
+    klog.Info(roleSelector)
 	if (len(pvcs.Items) > 1) {
 		klog.Info("!!!")
 	}
 
     return pvcs.Items[0].Spec.VolumeName, nil
+}
+
+// Given a PV name and namespace, find the PVC bound to the PV
+// Assumes there's only one PVC for a given PV (that's always the case right?)
+func getPVCFromPV(namespace, pv string) (corev1.PersistentVolumeClaim, error) {
+    clientset, err := getClientset()
+    if err != nil {
+        return corev1.PersistentVolumeClaim{}, err
+    }
+
+	pvcs, err := clientset.CoreV1().PersistentVolumeClaims(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		panic(err.Error())
+	}
+    for _, pvc := range pvcs.Items {
+        if pvc.Spec.VolumeName == pv {
+            klog.Info("found pvc", pvc)
+            return pvc, nil
+        }
+    }
+
+    return corev1.PersistentVolumeClaim{}, nil
 }
 
 func getFSPvcName(namespace string) (string, error) {
@@ -80,6 +125,65 @@ func getFSPvcName(namespace string) (string, error) {
 
 func getF3PvcName(namespace string) (string, error) {
     return getPVCName("f3.role=f3", namespace)
+}
+
+func createTargetPod(namespace, targetPVC, f3PV, nodeID string) (error) {
+    clientset, err := getClientset()
+    if err != nil {
+        return err
+    }
+
+    pod := &corev1.Pod {
+        ObjectMeta: metav1.ObjectMeta {
+            Name: "target-pod-"+targetPVC+"-"+nodeID,
+            Namespace: namespace,
+            Labels: map[string]string {
+                "f3.role": "target-pod",
+                "f3.pv": f3PV,
+            },
+        },
+        Spec: corev1.PodSpec{
+            RestartPolicy: "Never",
+            NodeName: nodeID,
+            Containers: []corev1.Container{
+                {
+                    Name:   "target-container",
+                    Image:  "k8s.gcr.io/pause:3.4.1",
+                    Command: []string{"/pause"},
+                    VolumeMounts: []corev1.VolumeMount{
+                        {
+                            MountPath: "/target-pv/",
+                            Name: "target-pvc",
+                        },
+                    },
+                },
+            },
+        },
+    }
+
+    targetVol := corev1.Volume{}
+    targetVol.Name = "target-pvc"
+    targetVol.PersistentVolumeClaim = &corev1.PersistentVolumeClaimVolumeSource {
+        ClaimName: targetPVC,
+    }
+    pod.Spec.Volumes = append(pod.Spec.Volumes, targetVol)
+
+    klog.Infof("Creating pod", pod)
+    pod2, err := clientset.CoreV1().Pods(namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
+    klog.Infof("got this pod", pod2)
+
+    return err
+}
+
+func getCephPVC(namespace, targetPVC string) (corev1.PersistentVolumeClaim, error) {
+    clientset, err := getClientset()
+    if err != nil {
+        return corev1.PersistentVolumeClaim{}, err
+    }
+
+	pvc, err := clientset.CoreV1().PersistentVolumeClaims(namespace).Get(context.TODO(), targetPVC, metav1.GetOptions{})
+
+    return *pvc, err
 }
 
 // NodePublishVolume mount the volume
@@ -116,70 +220,94 @@ func (ns *NodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		}
 	}
 
-	podUID := req.GetVolumeContext()["csi.storage.k8s.io/pod.uid"]
-	podDir := path.Join("/var/lib/kubelet/pods/", podUID, "volumes/kubernetes.io~csi/")
-
-	files, err := ioutil.ReadDir(podDir)
-	if err != nil {
-		klog.Infof("XXX uh")
-	}
-
     namespace := req.GetVolumeContext()["csi.storage.k8s.io/pod.namespace"]
+
+    /*
     f3Pvc, err := getF3PvcName(namespace)
     if err != nil {
         klog.Errorf(err.Error())
-    }
-    fsPvc, err := getFSPvcName(namespace)
-    if err != nil {
-        klog.Errorf(err.Error())
-    }
- 
-    klog.Info("fsPvc", fsPvc)
-	cephMount := ""
-	for _, f := range files {
-		klog.Infof(f.Name())
-        if f.Name() == fsPvc {
-			cephMount = path.Join(podDir, f.Name(), "mount")
-			klog.Infof("Ceph mount: ", cephMount)
-		}
-	}
+    }*/
+    workdir := "/var/lib/kubelet/plugins/kubernetes.io/csi/pv/"+volumeID+"/globalmount"
 
-	if cephMount == "" {
-		klog.Infof("Ceph not mounted yet!  Gotta wait...")
-		return nil, status.Error(codes.Unavailable, "Ceph not mounted yet")
-
-	}
-
-	if _, err := os.Stat(cephMount); err != nil {
-		if os.IsNotExist(err) {
-			return nil, status.Error(codes.Unavailable, "Ceph mount doesn't exist yet")
-		} else {
-			return nil, status.Error(codes.Internal, err.Error())
-		}
-	}
-
-    idroot := req.GetVolumeContext()["server"]
-
-	sourcedir := "/var/lib/kubelet/plugins/kubernetes.io/csi/pv/"+fsPvc+"/globalmount"
-	workdir := "/var/lib/kubelet/plugins/kubernetes.io/csi/pv/"+f3Pvc+"/globalmount"
-	ns.lock.Lock()
+    ns.lock.Lock()
 	if _, exists := ns.fuseProcs[volumeID]; !exists {
-        //klog.Infof("Running", "/f3-fuse-driver --single --debug --nocache --address " + ns.Driver.nodeID+":9999 --idroot " + ns.Driver.tempdir + " --socket-path " + ns.Driver.socketAddress + " --pod-uuid " + podUID[0:8] + " " + sourcedir + " " + workdir)
-		klog.Infof("Running", "/f3-fuse-driver --nosplice --single --debug --nocache --address " + ns.Driver.nodeID+":9999 --idroot " + idroot + " --client-socket-path " + ns.Driver.clientSocketAddress + " --server-socker-path " + ns.Driver.serverSocketAddress + " --pod-uuid " + podUID[0:8] + " " + sourcedir + " " + workdir)
-		//klog.Infof("Running", "/f3-fuse-driver --single --debug --address " + ns.Driver.nodeID+":9999 --idroot " + idroot + " --client-socket-path " + ns.Driver.clientSocketAddress + " --server-socker-path " + ns.Driver.serverSocketAddress + " --pod-uuid " + podUID[0:8] + " " + sourcedir + " " + workdir)
-        //cmd := exec.Command("/f3-fuse-driver", "--single", "--debug", "--nocache", "--address", ns.Driver.nodeID+":9999", "--idroot", ns.Driver.tempdir, "--socket-path", ns.Driver.socketAddress, "--pod-uuid", podUID[0:8], sourcedir, workdir)
-        //cmd := exec.Command("/f3-fuse-driver", "--debug", "--nocache", "--address", ns.Driver.nodeID+":9999", "--idroot", ns.Driver.tempdir, "--socket-path", ns.Driver.socketAddress, "--pod-uuid", podUID[0:8], sourcedir, workdir)
-        //cmd := exec.Command("/f3-fuse-driver", "--debug", "--nosplice", "--nocache", "--address", ns.Driver.nodeID+":9999", "--idroot", idroot, "--client-socket-path", ns.Driver.clientSocketAddress, "--server-socket-path", ns.Driver.serverSocketAddress, "--pod-uuid", podUID[0:8], sourcedir, workdir)
-        // was 0920:
-        //cmd := exec.Command("/f3-fuse-driver", "--debug", "--nocache", "--nosplice", "--address", ns.Driver.nodeID+":9999", "--idroot", idroot, "--client-socket-path", ns.Driver.clientSocketAddress, "--server-socket-path", ns.Driver.serverSocketAddress, "--pod-uuid", podUID[0:8], sourcedir, workdir)
-        // !!! BEST:
-        //cmd := exec.Command("/f3-fuse-driver", "--debug", "--nocache", "--single", "--nosplice", "--address", ns.Driver.nodeID+":9999", "--idroot", idroot, "--client-socket-path", ns.Driver.clientSocketAddress, "--server-socket-path", ns.Driver.serverSocketAddress, "--pod-uuid", podUID[0:8], sourcedir, workdir)
-        //cmd := exec.Command("/f3-fuse-driver", "--debug", "--address", ns.Driver.nodeID+":9999", "--idroot", idroot, "--client-socket-path", ns.Driver.clientSocketAddress, "--server-socket-path", ns.Driver.serverSocketAddress, "--pod-uuid", podUID[0:8], sourcedir, workdir)
+
+        pvc, err := getPVCFromPV(namespace, volumeID)
+        if err != nil {
+            return nil, status.Error(codes.Internal, err.Error())
+        }
+        targetPVCName := pvc.Labels["f3.target-pvc"]
+
+        err = createTargetPod(namespace, targetPVCName, volumeID, ns.Driver.nodeID)
+        if err != nil {
+            if errors.IsAlreadyExists(err) {
+                klog.Info("Target pod already existed")
+            } else {
+                return nil, status.Error(codes.Internal, err.Error())
+            }
+        }
+
+        cephPVC, err := getCephPVC(namespace, targetPVCName)
+        klog.Infof("cephPVC", cephPVC)
+
+        /*
+        podDir := path.Join("/var/lib/kubelet/pods/", podUID, "volumes/kubernetes.io~csi/")
+
+        files, err := ioutil.ReadDir(podDir)
+        if err != nil {
+            klog.Infof("XXX uh")
+        }
+
+        fsPvc, err := getFSPvcName(namespace)
+        if err != nil {
+            klog.Errorf(err.Error())
+        }
+
+        klog.Info("fsPvc", fsPvc)
+        cephMount := ""
+        for _, f := range files {
+            klog.Infof(f.Name())
+            if f.Name() == fsPvc {
+                cephMount = path.Join(podDir, f.Name(), "mount")
+                klog.Infof("Ceph mount: ", cephMount)
+            }
+        }
+
+        if cephMount == "" {
+            klog.Infof("Ceph not mounted yet!  Gotta wait...")
+            return nil, status.Error(codes.Unavailable, "Ceph not mounted yet")
+
+        }
+
+        if _, err := os.Stat(cephMount); err != nil {
+            if os.IsNotExist(err) {
+                return nil, status.Error(codes.Unavailable, "Ceph mount doesn't exist yet")
+            } else {
+                return nil, status.Error(codes.Internal, err.Error())
+            }
+        }*/
+
+        idroot := req.GetVolumeContext()["server"]
+
+        sourcedir := "/var/lib/kubelet/plugins/kubernetes.io/csi/pv/"+cephPVC.Spec.VolumeName+"/globalmount"
+
+        klog.Infof("sourcedir", sourcedir)
+        //notMountPoint, err := ns.mounter.IsNotMountPoint(sourcedir)
+        notMountPoint, err := ns.mounter.IsLikelyNotMountPoint(sourcedir)
+        if notMountPoint || err != nil {
+	        ns.lock.Unlock()
+            if notMountPoint || os.IsNotExist(err) {
+                return nil, status.Error(codes.Unavailable, "Ceph mount doesn't exist yet")
+            } else {
+                return nil, status.Error(codes.Internal, err.Error())
+            }
+        }
+
+        podUID := req.GetVolumeContext()["csi.storage.k8s.io/pod.uid"]
+
+        klog.Infof("Running", "/f3-fuse-driver " + " --debug " + " --nocache " + " --single " + " --nosplice " + " --address " + ns.Driver.nodeID+":9999 " + " --idroot " + idroot + " --client-socket-path " + ns.Driver.clientSocketAddress + " --server-socket-path " + ns.Driver.serverSocketAddress + " --pod-uuid " + podUID[0:8] + sourcedir + workdir)
         cmd := exec.Command("/f3-fuse-driver", "--debug", "--nocache", "--single", "--nosplice", "--address", ns.Driver.nodeID+":9999", "--idroot", idroot, "--client-socket-path", ns.Driver.clientSocketAddress, "--server-socket-path", ns.Driver.serverSocketAddress, "--pod-uuid", podUID[0:8], sourcedir, workdir)
 
-        // does not work:
-        //cmd := exec.Command("/f3-fuse-driver", "--debug", "--single", "--nosplice", "--address", ns.Driver.nodeID+":9999", "--idroot", idroot, "--client-socket-path", ns.Driver.clientSocketAddress, "--server-socket-path", ns.Driver.serverSocketAddress, "--pod-uuid", podUID[0:8], sourcedir, workdir)
-        //cmd := exec.Command("/f3-fuse-driver", "--debug", "--nocache", "--nosplice", "--address", ns.Driver.nodeID+":9999", "--idroot", idroot, "--client-socket-path", ns.Driver.clientSocketAddress, "--server-socket-path", ns.Driver.serverSocketAddress, "--pod-uuid", podUID[0:8], sourcedir, workdir)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Start(); err != nil {
@@ -189,13 +317,18 @@ func (ns *NodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		}
 		ns.fuseProcs[volumeID] = cmd
 		ns.fuseProcsCount[volumeID] = 0
+        ns.namespaceMap[volumeID] = namespace
+        ns.targetPVCMap[volumeID] = targetPVCName
 
 		go func(cmd *exec.Cmd, podUID string) {
 			err := cmd.Wait()
 			klog.Infof("XXX %v", podUID);
 			klog.Infof("Error %v", err)
 		}(cmd, podUID[0:8])
-	}
+	} else {
+        klog.Info("volumeID already exists in fuseProcs, not creating")
+    }
+
 	ns.fuseProcsCount[volumeID] += 1
 	ns.lock.Unlock()
 
@@ -239,11 +372,36 @@ func (ns *NodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 					return nil, status.Error(codes.Internal, err.Error())
 				}
 			}
+
+            // Delete the target pod:
+            klog.Infof("Deleting target pod", "target-pod-"+ns.targetPVCMap[volumeID]+"-"+ns.Driver.nodeID)
+            err := deleteTargetPod(ns.namespaceMap[volumeID], "target-pod-"+ns.targetPVCMap[volumeID]+"-"+ns.Driver.nodeID)
+            if err != nil {
+
+                klog.Infof("Error deleting target pod", "target-pod-"+ns.targetPVCMap[volumeID]+"-"+ns.Driver.nodeID)
+				ns.lock.Unlock()
+                return nil, status.Error(codes.Internal, err.Error())
+            }
+
 			delete(ns.fuseProcs, volumeID)
 			delete(ns.fuseProcsCount, volumeID)
+            delete(ns.namespaceMap, volumeID)
+            delete(ns.targetPVCMap, volumeID)
 		}
+
 	} else {
 		klog.Infof("volumeID not in map, FUSE not running? Nothing to do...")
+        // Delete the target pod:
+        klog.Infof("Deleting target pod", "target-pod-"+ns.targetPVCMap[volumeID]+"-"+ns.Driver.nodeID)
+        err := deleteTargetPod(ns.namespaceMap[volumeID], "target-pod-"+ns.targetPVCMap[volumeID]+"-"+ns.Driver.nodeID)
+        if err != nil {
+            klog.Infof("Error deleting target pod", "target-pod-"+ns.targetPVCMap[volumeID]+"-"+ns.Driver.nodeID)
+            //return nil, status.Error(codes.Internal, err.Error())
+        } else {
+            delete(ns.namespaceMap, volumeID)
+            delete(ns.targetPVCMap, volumeID)
+        }
+
 		delete(ns.fuseProcs, volumeID)
 		delete(ns.fuseProcsCount, volumeID)
 	}

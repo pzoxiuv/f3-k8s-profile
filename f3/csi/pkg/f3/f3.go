@@ -23,7 +23,8 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/mount"
+	//"k8s.io/utils/mount"
+	mount "k8s.io/mount-utils"
 )
 
 type Driver struct {
@@ -109,6 +110,8 @@ func NewNodeServer(n *Driver, mounter mount.Interface) *NodeServer {
 		mounter: mounter,
 		fuseProcs: make(map[string]*exec.Cmd),
 		fuseProcsCount: make(map[string]int),
+        namespaceMap: make(map[string]string),
+        targetPVCMap: make(map[string]string),
 	}
 }
 
