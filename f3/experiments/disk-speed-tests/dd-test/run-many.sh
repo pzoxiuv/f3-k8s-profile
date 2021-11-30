@@ -72,13 +72,27 @@ for i in `seq $5 $6`; do
 
     #sleep 10
 
+	inode=$(kubectl exec -nopenwhisk f3-testing1-pod-kubes1 -- ls -i $2/f$k$9 | awk '{print $1}')
+    counter2=0
+    counter=0
+	prev_read=`tail -n 1 $OUTDIR/pg_stats.json.$counter2 | jq -j -M '.pg_map.pg_stats_sum.stat_sum.num_read_kb'`
     for p in `kubectl get pods -lapp=f3 -nopenwhisk -o custom-columns=name:metadata.name --no-headers`; do
         #if ! `grep -q $p /tmp/nodelist`; then
-	for k in `seq 0 $8`; do
-		kubectl exec -nopenwhisk $p -- /reader $2/f$k$9 $FILESIZE | tee $OUTDIR/$p.$k &
-	done
+        for k in `seq 0 $8`; do
+                kubectl exec -nopenwhisk $p -- /reader $2/f$k$9 $FILESIZE | tee $OUTDIR/$p.$k &
+        done
         #fi
-        #sleep 10
+        counter=$(( $counter + 1 ))
+        if [ $counter -gt 2 ]; then
+            sleep 10
+            counter=0
+        fi
+        counter2=$(( $counter2 + 1 ))
+        kubectl exec -nrook-ceph deploy/rook-ceph-tools -- ceph tell mds.cephfs-b dump cache | jq ".[] | select(.ino==$inode) | .client_caps" > $OUTDIR/client-caps.$counter2
+        kubectl -n rook-ceph exec -it deploy/rook-ceph-tools -- ceph pg dump --format=json > $OUTDIR/pg_stats.json.$counter2
+        cur_read=`tail -n 1 $OUTDIR/pg_stats.json.$counter2 | jq -j -M '.pg_map.pg_stats_sum.stat_sum.num_read_kb'`
+        echo $(( $(( $cur_read - $prev_read )) / 1024 )) >> $OUTDIR/pg_stats_all
+		prev_read=$cur_read
     done
     wait
     after2=$(($(date +%s%N)/1000000))

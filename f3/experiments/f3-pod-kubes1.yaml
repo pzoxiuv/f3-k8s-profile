@@ -4,12 +4,12 @@ metadata:
   name: f3-testing1-pod-kubes1
   namespace: openwhisk
 spec:
-  nodeName: node-1
+  nodeName: node-2
   restartPolicy: Never
   containers:
     #- image: quay.io/k8scsi/csi-attacher
   #- image: ubuntu
-  - image: centos:7
+  - image: alexmerenstein/f3-test-image
     name: test
     command: ["tail", "-f", "/dev/null"]
       #lifecycle:

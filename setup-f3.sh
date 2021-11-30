@@ -69,6 +69,11 @@ wsk -i action update cmd --timeout 1200000
 wsk -i action update cmd --memory 1024
 cd $PREVDIR
 
+cd $SRC/f3/utils
+$SUDO cp cleanup.sh /usr/local/bin/
+$SUDO chmod +x /usr/local/bin/cleanup.sh
+cd $PREVDIR
+
 maybe_install_packages screen
 
 logtend "f3"
