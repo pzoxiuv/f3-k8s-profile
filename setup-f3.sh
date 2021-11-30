@@ -74,7 +74,7 @@ $SUDO cp cleanup.sh /usr/local/bin/
 $SUDO chmod +x /usr/local/bin/cleanup.sh
 cd $PREVDIR
 
-maybe_install_packages screen
+maybe_install_packages screen jq
 
 logtend "f3"
 touch $OURDIR/setup-f3-done
