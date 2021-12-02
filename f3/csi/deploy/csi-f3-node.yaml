@@ -64,7 +64,7 @@ spec:
               add: ["SYS_ADMIN"]
             allowPrivilegeEscalation: true
           #image: mcr.microsoft.com/k8s/csi/f3-csi:latest
-          image: alexmerenstein/f3-csi:latest
+          image: alexmerenstein/f3-csi:2.0.0
           imagePullPolicy: Always
           args:
             - "-v=5"

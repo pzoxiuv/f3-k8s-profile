@@ -263,7 +263,7 @@ controller:
 invoker:
   #imageName: "openwhisk/invoker"
   imageName: "alexmerenstein/f3-ow-invoker"
-  imageTag: "1.0.0"
+  imageTag: "1.1.0"
   imagePullPolicy: "IfNotPresent"
   restartPolicy: "Always"
   port: 8080
