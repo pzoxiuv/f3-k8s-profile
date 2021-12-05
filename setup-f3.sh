@@ -34,7 +34,8 @@ if [ -n "$ENABLECEPH" -a $ENABLECEPH -eq 1 ]; then
 	else
 		kubectl apply -f cluster.yaml
 	fi
-	kubectl apply -f filesystem.yaml -f storageclass.yaml -f filesystem-replicated.yaml -f storageclass-replicated.yaml
+	#kubectl apply -f filesystem.yaml -f storageclass.yaml -f filesystem-replicated.yaml -f storageclass-replicated.yaml
+	kubectl apply -f filesystem-replicated.yaml -f storageclass-replicated.yaml
 	cd $PREVDIR
 fi
 
