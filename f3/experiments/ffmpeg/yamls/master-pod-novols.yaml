@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mr-master-novols
+  namespace: openwhisk
+spec:
+  containers:
+  - name: test
+    image: rishabh0202/mr-master:v5
+    imagePullPolicy: IfNotPresent

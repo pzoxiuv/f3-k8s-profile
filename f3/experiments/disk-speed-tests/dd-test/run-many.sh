@@ -32,9 +32,10 @@ for i in `seq $5 $6`; do
     OUTDIR=$MYDIR/$7/e2e-${SC}-$1-$4-readers$3/$i
     mkdir -p $OUTDIR
 
-    kubectl apply -f /local/repository/f3/experiments/f3-only-pvc.yaml
+    #kubectl apply -f /local/repository/f3/experiments/f3-only-pvc.yaml
     kubectl apply -f /local/repository/f3/experiments/f3-pod-kubes1.yaml
-    #kubectl apply -f /local/repository/f3/experiments/f3-only-pvc-replicated.yaml
+    kubectl apply -f /local/repository/f3/experiments/ceph-pvc-replicated.yaml
+    kubectl apply -f /local/repository/f3/experiments/f3-pvc-2.yaml
     kubectl apply -f deployment.yaml
     kubectl scale deployment f3-testing --replicas=$4 -nopenwhisk
     kubectl rollout status deployment f3-testing -nopenwhisk
@@ -72,10 +73,12 @@ for i in `seq $5 $6`; do
 
     #sleep 10
 
-	inode=$(kubectl exec -nopenwhisk f3-testing1-pod-kubes1 -- ls -i $2/f$k$9 | awk '{print $1}')
+    inode=$(kubectl exec -nopenwhisk f3-testing1-pod-kubes1 -- ls -i $2/f$k$9 | awk '{print $1}')
+    echo "INODE: $inode"
+    echo $inode > $OUTDIR/inode
     counter2=0
     counter=0
-	prev_read=`tail -n 1 $OUTDIR/pg_stats.json.$counter2 | jq -j -M '.pg_map.pg_stats_sum.stat_sum.num_read_kb'`
+    prev_read=$pg_read_before
     for p in `kubectl get pods -lapp=f3 -nopenwhisk -o custom-columns=name:metadata.name --no-headers`; do
         #if ! `grep -q $p /tmp/nodelist`; then
         for k in `seq 0 $8`; do
@@ -88,15 +91,19 @@ for i in `seq $5 $6`; do
             counter=0
         fi
         counter2=$(( $counter2 + 1 ))
-        kubectl exec -nrook-ceph deploy/rook-ceph-tools -- ceph tell mds.cephfs-b dump cache | jq ".[] | select(.ino==$inode) | .client_caps" > $OUTDIR/client-caps.$counter2
+        kubectl exec -nrook-ceph deploy/rook-ceph-tools -- ceph tell mds.* dump cache > $OUTDIR/client-caps.json.$counter2
+        #kubectl exec -nrook-ceph deploy/rook-ceph-tools -- ceph tell mds.cephfs-a dump cache > $OUTDIR/client-caps-a.json.$counter2
+        #kubectl exec -nrook-ceph deploy/rook-ceph-tools -- ceph tell mds.cephfs-b dump cache > $OUTDIR/client-caps-b.json.$counter2
+        #kubectl exec -nrook-ceph deploy/rook-ceph-tools -- ceph tell mds.* dump cache | jq ".[] | select(.ino==$inode) | .client_caps" > $OUTDIR/client-caps.$counter2
         kubectl -n rook-ceph exec -it deploy/rook-ceph-tools -- ceph pg dump --format=json > $OUTDIR/pg_stats.json.$counter2
-        cur_read=`tail -n 1 $OUTDIR/pg_stats.json.$counter2 | jq -j -M '.pg_map.pg_stats_sum.stat_sum.num_read_kb'`
-        echo $(( $(( $cur_read - $prev_read )) / 1024 )) >> $OUTDIR/pg_stats_all
-		prev_read=$cur_read
+        #cur_read=`tail -n 1 $OUTDIR/pg_stats.json.$counter2 | jq -j -M '.pg_map.pg_stats_sum.stat_sum.num_read_kb'`
+        #echo $(( $(( $cur_read - $prev_read )) / 1024 )) >> $OUTDIR/pg_stats_all
+	#prev_read=$cur_read
     done
     wait
     after2=$(($(date +%s%N)/1000000))
     read_time=$(( $after2 - $before2 ))
+    kubectl exec -nrook-ceph deploy/rook-ceph-tools -- ceph tell mds.* dump cache > $OUTDIR/client-caps.json
 
     echo "$(date +%s)," >> $OUTDIR/start_stop
 
@@ -137,7 +144,8 @@ for i in `seq $5 $6`; do
 
     kubectl delete -f deployment.yaml
     kubectl delete -f /local/repository/f3/experiments/f3-pod-kubes1.yaml &
-    kubectl delete -f /local/repository/f3/experiments/f3-only-pvc.yaml &
+    kubectl delete -f /local/repository/f3/experiments/ceph-pvc-replicated.yaml &
+    kubectl delete -f /local/repository/f3/experiments/f3-pvc-2.yaml &
     #timeout 600 kubectl delete -f /local/repository/f3/experiments/f3-only-pvc-replicated.yaml
     until cleanup.sh; do
         echo "Waiting for containers to exit..."

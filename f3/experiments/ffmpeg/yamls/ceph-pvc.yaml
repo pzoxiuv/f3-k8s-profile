@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ceph-pvc
+  namespace: openwhisk
+  labels:
+    f3.role: fs
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 1000Gi
+  storageClassName: rook-cephfs

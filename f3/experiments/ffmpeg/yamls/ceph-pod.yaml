@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    f3.pv: pvc-e265620f-8c79-4783-b073-f9c851853a7a
+    f3.role: target-pod
+  name: ceph-pod
+  namespace: openwhisk
+spec:
+  containers:
+  - command: ["tail", "-f", "/dev/null"]
+    image: rishabh0202/action-golang-v1.15:1.17
+    imagePullPolicy: IfNotPresent
+    name: target-container
+    volumeMounts:
+    - mountPath: /target-pv/
+      name: target-pvc
+  nodeName: node-5
+  volumes:
+  - name: target-pvc
+    persistentVolumeClaim:
+      claimName: ceph-pvc

@@ -28,7 +28,7 @@ spec:
       volumes:
       - name: f3
         persistentVolumeClaim:
-          claimName: f3-testing2-f3-pvc
+          claimName: f3-pvc
       - name: ceph
         persistentVolumeClaim:
-          claimName: f3-testing2-ceph-pvc
+          claimName: ceph-pvc

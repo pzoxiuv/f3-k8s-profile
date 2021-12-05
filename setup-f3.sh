@@ -71,7 +71,9 @@ cd $PREVDIR
 
 cd $SRC/f3/utils
 $SUDO cp cleanup.sh /usr/local/bin/
+$SUDO cp cleanup-pod.sh /usr/local/bin/
 $SUDO chmod +x /usr/local/bin/cleanup.sh
+$SUDO chmod +x /usr/local/bin/cleanup-pod.sh
 cd $PREVDIR
 
 maybe_install_packages screen jq
