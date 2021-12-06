@@ -79,5 +79,7 @@ cd $PREVDIR
 
 maybe_install_packages screen jq
 
+$SUDO pip3 install requests numpy
+
 logtend "f3"
 touch $OURDIR/setup-f3-done

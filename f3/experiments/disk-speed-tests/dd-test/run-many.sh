@@ -158,7 +158,7 @@ for i in `seq $5 $6`; do
     kubectl rollout restart ds csi-f3-node
     kubectl rollout status ds csi-f3-node --timeout=1200s
 
-    python3 /mnt/local-cache/trim-dstat.py $OUTDIR
+    python3 trim-dstat.py $OUTDIR
 done
 
 rm lock
