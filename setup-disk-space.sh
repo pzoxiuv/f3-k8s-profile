@@ -145,7 +145,7 @@ $SUDO mkdir /mnt/local-cache
 $SUDO mount /dev/sda4 /mnt/local-cache
 $SUDO mkdir /mnt/local-cache/tempdir
 $SUDO chown -R amerenst:f3-PG0 /mnt/local-cache
-uuid=`ls -lha /dev/disk/by-uuid | grep sda4 | cut -d' ' -f10`
+uuid=`ls -lha /dev/disk/by-uuid | grep sda4 | cut -d' ' -f11`
 echo "UUID=$uuid /mnt/local-cache ext4 defaults 0 0" | $SUDO tee -a /etc/fstab
 
 #
@@ -154,14 +154,14 @@ echo "UUID=$uuid /mnt/local-cache ext4 defaults 0 0" | $SUDO tee -a /etc/fstab
 for dir in docker kubelet containerd ; do
     $SUDO mkdir -p /mnt/local-cache/$dir /var/lib/$dir
     $SUDO mount -o bind /mnt/local-cache/$dir /var/lib/$dir
-    echo "/mnt/local-cache/$dir /var/lib/$dir none defaults,bind 0 0" \
+    echo "/mnt/local-cache/$dir /var/lib/$dir none defaults,bind,x-systemd.requires=/mnt/local-cache 0 0" \
         | $SUDO tee -a /etc/fstab
 done
 
 # Also move /storage/nfs:
 $SUDO mkdir -p /mnt/local-cache/nfs /storage/nfs
 $SUDO mount -o bind /mnt/local-cache/nfs /storage/nfs
-echo "/mnt/local-cache/nfs /storage/nfs none defaults,bind 0 0" \
+echo "/mnt/local-cache/nfs /storage/nfs none defaults,bind,x-systemd.requires=/mnt/local-cache 0 0" \
 	| $SUDO tee -a /etc/fstab
 
 if [ -n "$SHARESSD" -a $SHARESSD -eq 1 ]; then
@@ -175,6 +175,7 @@ if [ -n "$SHARESSD" -a $SHARESSD -eq 1 ]; then
 		$SUDO mount /dev/ssd/f3vol /mnt/local-cache/tempdir
 		lsblk | awk '/f3/{print $2" "209715200}'| $SUDO tee /sys/fs/cgroup/blkio/blkio.throttle.{read,write}_bps_device
 		lsblk | awk '/ceph/{print $2" "209715200}'| $SUDO tee /sys/fs/cgroup/blkio/blkio.throttle.{read,write}_bps_device
+		echo "/dev/mapper/ssd-f3vol /mnt/local-cache/tempdir ext4 defaults,x-systemd.requires=/mnt/local-cache 0 0" | $SUDO tee -a /etc/fstab
 	fi
 fi
 
