@@ -60,14 +60,14 @@ for i in `seq $startdir $enddir`; do
     echo "outdir: $OUTDIR"
     mkdir -p $OUTDIR
 
-    kubectl apply -f /mnt/local-cache/ffmpeg/yamls/master-pod.yaml
-    kubectl apply -f /mnt/local-cache/ffmpeg/yamls/f3-pvc.yaml
-    kubectl apply -f /mnt/local-cache/ffmpeg/yamls/ceph-pvc-replicated.yaml
+    kubectl apply -f /local/repository/f3/experiments/ffmpeg/yamls/master-pod.yaml
+    kubectl apply -f /local/repository/f3/experiments/ffmpeg/yamls/f3-pvc.yaml
+    kubectl apply -f /local/repository/f3/experiments/ffmpeg/yamls/ceph-pvc-replicated.yaml
     kubectl wait --for=condition=ready pod mr-master -nopenwhisk --timeout=200s
 
-    kubectl cp /mnt/local-cache/ffmpeg.tgz mr-master:/var/f3/ffmpeg.tgz -nopenwhisk
-    kubectl cp /mnt/local-cache/ffmpeg/yamls/master_v7_id mr-master:/master_v7 -nopenwhisk
-    kubectl exec -n openwhisk mr-master -- tar -mxzvf /var/f3/ffmpeg.tgz -C /var/f3/
+    #kubectl cp /mnt/local-cache/ffmpeg.tgz mr-master:/var/$sc/ffmpeg.tgz -nopenwhisk
+    kubectl cp /local/repository/f3/experiments/ffmpeg/yamls/$master_bin mr-master:/master_v7 -nopenwhisk
+    #kubectl exec -n openwhisk mr-master -- tar -mxzvf /var/$sc/ffmpeg.tgz -C /var/$sc/
     kubectl exec -n openwhisk mr-master -- mkdir -p /var/$sc/media_util
     kubectl exec -n openwhisk mr-master -- chmod +x /master_v7
 
@@ -88,9 +88,9 @@ for i in `seq $startdir $enddir`; do
     ansible all --become -m shell -a "du -ah /mnt/local-cache/tempdir/" | grep -v media_files_4gb >$OUTDIR/cache-contents
     ansible all --become -m shell -a "rm -rf /mnt/local-cache/tempdir/*"
     
-    kubectl delete -f /mnt/local-cache/ffmpeg/yamls/master-pod.yaml &
-    kubectl delete -f /mnt/local-cache/ffmpeg/yamls/f3-pvc.yaml &
-    kubectl delete -f /mnt/local-cache/ffmpeg/yamls/ceph-pvc-replicated.yaml &
+    kubectl delete -f /local/repository/f3/experiments/ffmpeg/yamls/master-pod.yaml &
+    kubectl delete -f /local/repository/f3/experiments/ffmpeg/yamls/f3-pvc.yaml &
+    kubectl delete -f /local/repository/f3/experiments/ffmpeg/yamls/ceph-pvc-replicated.yaml &
     #kubectl delete -f /mnt/local-cache/ffmpeg/yamls/ceph-pvc.yaml &
     kubectl delete pod -luser-action-pod=true -nopenwhisk &
     #timeout 600 kubectl delete -f /local/repository/f3/experiments/f3-only-pvc-replicated.yaml
@@ -98,14 +98,21 @@ for i in `seq $startdir $enddir`; do
         echo "Waiting for containers to exit..."
         sleep 60
     done
+    #kubectl delete pod owdev-invoker-0 -nopenwhisk
+    until cleanup-pod.sh mr-master -nopenwhisk; do
+        echo "Waiting for containers to exit..."
+        sleep 60
+    done
     wait
     #kubectl delete -f /local/repository/f3/experiments/f3-only-pvc-replicated.yaml
     #kubectl delete -f /local/repository/f3/experiments/f3-only-pvc.yaml
 
-    kubectl rollout restart ds csi-f3-node
-    kubectl rollout status ds csi-f3-node --timeout=1200s
+    if [ $sc = "f3" ]; then
+	    kubectl rollout restart ds csi-f3-node
+	    kubectl rollout status ds csi-f3-node --timeout=1200s
+    fi
 
-    #python3 /mnt/local-cache/trim-dstat.py $OUTDIR
+    python3 trim-dstat.py $OUTDIR
 done
 
 rm lock

@@ -40,4 +40,5 @@ plt.xlabel('Number of workers')
 plt.xticks(x, [str(x) for x in res['f3'].keys()])
 
 plt.legend()
-plt.show()
+#plt.show()
+#plt.savefig('ffmpeg-results.png', dpi=600, bbox_layout='tight')
