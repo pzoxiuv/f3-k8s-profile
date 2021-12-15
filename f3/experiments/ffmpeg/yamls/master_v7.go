@@ -322,15 +322,25 @@ func TrackReducer(m *Master, reducerNum int, typeOfJob string, wg *sync.WaitGrou
 	log.Println("Time to reduce-1 %f", d1.Seconds())
 	s2 := time.Now()
 	isSuccess := false
+        id := ""
 	if !strings.Contains(string(stdout), "Success") {
 		log.Println("Printing stdout")
 		log.Println(string(stdout))
 		str := strings.Split(string(stdout), " ")
+                id = str[len(str)-1]
 		log.Println("guid is " + guid)
+		log.Println("id is " + id)
 		counter := 0
 		for counter<=6000 {
-			if pollAction(str[len(str)-1], guid)==true{
+			stdout := pollAction2(id)
+			if strings.Contains(stdout, "Successfully executed "+guid){
 				isSuccess=true
+				break;
+			} else if(stdout==""){
+				isSuccess=true
+				break;
+			} else if strings.Contains(stdout, "exit status 1") {
+				isSuccess=false
 				break;
 			}
 			time.Sleep(100*time.Millisecond)
@@ -344,13 +354,21 @@ func TrackReducer(m *Master, reducerNum int, typeOfJob string, wg *sync.WaitGrou
 		log.Fatal("wsk action failed, check logs!!")
 	}
 	d2 := time.Since(s2)
-	log.Println("Time to reduce-2: %f", d2.Seconds())
+	log.Println("Time to reduce-2: %f %v %v", d2.Seconds(), id, guid)
+}
+
+func pollAction2(id string) string{
+	id = strings.TrimSpace(id)
+	cmd := exec.Command("wsk", "activation", "logs", id, "-i")
+	stdout, _ := cmd.CombinedOutput()
+	return string(stdout)
 }
 
 func pollAction(id string, guid string) bool{
 	id = strings.TrimSpace(id)
 	cmd := exec.Command("wsk", "activation", "logs", id, "-i")
 	stdout, _ := cmd.CombinedOutput()
+
 	if strings.Contains(string(stdout), "Successfully executed "+guid){
 		return true
 	} else if(string(stdout)==""){

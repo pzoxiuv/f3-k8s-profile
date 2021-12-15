@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type ByKey []KeyValue
@@ -81,17 +82,28 @@ func WorkerInReducer(w *Reducer) {
 		log.Fatal(err)
 	}
 	for _, f := range files {
-		//log.Println(f.Name())
-		file, err := ioutil.ReadFile(w.filePath + "/" + f.Name())
-		if err != nil {
-			log.Fatal(err)
+		retries := 3
+		for retries > 0 {
+			//log.Println(f.Name())
+			fmt.Println("Retries: %d", retries)
+			file, err := ioutil.ReadFile(w.filePath + "/" + f.Name())
+			if err != nil {
+				log.Fatal(err)
+			}
+			if len(file) > 0 {
+				var interim []KeyValue
+				err2 := json.Unmarshal(file, &interim)
+				if err2 != nil {
+					fmt.Println(w.filePath + "/" + f.Name())
+					fmt.Println("error:", err2)
+				} else {
+					intermediate = append(intermediate, interim...)
+					break;
+				}
+			}
+			retries -= 1
+			time.Sleep(500*time.Millisecond)
 		}
-		var interim []KeyValue
-		err2 := json.Unmarshal(file, &interim)
-		if err2 != nil {
-			fmt.Println("error:", err2)
-		}
-		intermediate = append(intermediate, interim...)
 	}
 	sort.Sort(ByKey(intermediate))
 	sortedStrings := make([]string, len(intermediate))
@@ -136,7 +148,7 @@ func Reduce(filename string, targetFile string, command string, commandParamInpu
 	//param = append(param, "--blocking")
 	log.Println(param)
 	cmd := exec.Command(command, param...)
-	stdout, err := cmd.Output()
+	stdout, err := cmd.CombinedOutput()
 	log.Println(string(stdout))
 	HandleError(err)
 }
