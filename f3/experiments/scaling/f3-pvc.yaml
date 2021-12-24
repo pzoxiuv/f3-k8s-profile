@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: f3-pvc
+  namespace: openwhisk
+  labels:
+    f3.role: f3
+    f3.target-pvc: ceph-pvc
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 1000Gi
+  storageClassName: f3
