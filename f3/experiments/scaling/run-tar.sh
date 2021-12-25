@@ -25,7 +25,7 @@ sc=$1
 mb=10000
 FILESIZE=$(( $mb * 1024 * 1024 ))
 
-OUTDIR_BASE=$MYDIR/single-file-$2-$4-$5-$mb
+OUTDIR_BASE=$MYDIR/tar-$2-$4-$5
 target_dir=$6
 
 mkdir -p $OUTDIR_BASE
@@ -43,7 +43,10 @@ echo "master bin: $master_bin"
 echo "outdir base: $OUTDIR_BASE"
 echo "untardir: $untar_dir"
 
-RUNTIME=120
+# 9 minutes:
+RUNTIME=540
+
+files_per_reader=1
 
 for i in `seq $startdir $enddir`; do 
 
@@ -78,21 +81,28 @@ for i in `seq $startdir $enddir`; do
 
     kubectl exec -n openwhisk writer -- mkdir /var/$sc/$target_dir
 
+    kubectl cp /mnt/local-cache/ffmpeg.tgz writer:/var/$sc/ffmpeg.tgz -nopenwhisk
+
     ansible all --become -mshell -a "echo 1 >/proc/fuse-stats"
 
     ###### Run:
 
+
     start=$(date +%s)
     echo -n "$(date +%s)," > $OUTDIR/start_stop
     echo -n "$(date +%s)," > $OUTDIR/writer_start_stop
-    kubectl exec writer -nopenwhisk -- /writer /var/$sc/$target_dir/f $FILESIZE | tee $OUTDIR/writer.out
+    /usr/bin/time -v -o $OUTDIR/tar.time kubectl exec -n openwhisk writer -- tar -mxzvf /var/$sc/ffmpeg.tgz -C /var/$sc/$target_dir
     echo "$(date +%s)," >> $OUTDIR/writer_start_stop
     echo -n "$(date +%s)," > $OUTDIR/reader_start_stop
     #for j in `seq 3 $(( $readers + 2 ))`; do 
     #    kubectl exec reader-$j -nopenwhisk -- /reader /var/$sc/$target_dir/f $FILESIZE | tee $OUTDIR/reader.$j.out &
     #done
+    # 1 to 3703 inclusive
     for p in `kubectl get pods -lrole=reader -nopenwhisk -o name`; do
-        kubectl exec $p -nopenwhisk -- /reader /var/$sc/$target_dir/f $FILESIZE | tee $OUTDIR/`echo $p | sed 's/\//-/g'`.out &
+        for j in `seq 1 $files_per_reader`; do
+	    num=$(( 1 + $RANDOM % 3703 ))
+	    kubectl exec $p -nopenwhisk -- cat /var/$sc/$target_dir/ffmpeg/media_files_4gb/out${num}.jpg >/dev/null &
+        done
     done
     wait
     echo "$(date +%s)," >> $OUTDIR/reader_start_stop

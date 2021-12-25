@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reader-5
+  namespace: openwhisk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reader-5
+  template:
+    metadata:
+      labels:
+        app: reader-5
+        role: reader
+    spec:
+      nodeName: node-5
+      containers:
+      - name: test
+        image: docker.io/alexmerenstein/f3-test-image:latest
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: f3
+          mountPath: /var/f3
+        - name: ceph
+          mountPath: /var/ceph
+      volumes:
+      - name: f3
+        persistentVolumeClaim:
+          claimName: f3-pvc
+      - name: ceph
+        persistentVolumeClaim:
+          claimName: ceph-pvc
