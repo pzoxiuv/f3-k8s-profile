@@ -17,7 +17,7 @@ with open(os.path.join(iter_dname, 'start_stop')) as f:
 	start_ts = int(start_ts)
 	stop_ts = int(stop_ts)
 
-for fname in [f'node-{j}-dstat.stats' for j in range(9)]:
+for fname in [f'node-{j}-dstat.stats' for j in range(10)]:
 	if not os.path.exists(os.path.join(iter_dname, fname)):
 		continue
 

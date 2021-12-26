@@ -16,15 +16,17 @@ MYDIR=`dirname $0`
 # 1 = sc
 # 2 = outdir
 # 3 = count
-# 4 = # readers
-# 5 = target dir
+# 4 = # clients
+# 5 = # readers per client
+# 6 = target dir
 
 sc=$1
 
-FILESIZE=$(( 10000 * 1024 * 1024 ))
+mb=10000
+FILESIZE=$(( $mb * 1024 * 1024 ))
 
-OUTDIR_BASE=$MYDIR/$2-$4-$FILESIZE
-target_dir=$5
+OUTDIR_BASE=$MYDIR/single-file-$2-$4-$5-$mb
+target_dir=$6
 
 mkdir -p $OUTDIR_BASE
 if [ `find $OUTDIR_BASE -mindepth 1 -type d | wc -l` -gt 0 ]; then
@@ -35,19 +37,21 @@ fi
 startdir=$(( $lastdir + 1 ))
 enddir=$(( $startdir + $3 - 1 ))
 
+readers=$4
+
 echo "master bin: $master_bin"
 echo "outdir base: $OUTDIR_BASE"
 echo "untardir: $untar_dir"
 
 RUNTIME=120
 
-for i in `seq $startdir $enddir`; do 
+for i in `seq $startdir $enddir`; do
 
     if [ -f stop ]; then
         exit
     fi
 
-    echo "TOP OF LOOP $i ${sc} $1 $2 $3 $4 $5 $#"
+    echo "TOP OF LOOP $i ${sc} $1 $2 $3 $4 $5 $6 $#"
 
     OUTDIR=$OUTDIR_BASE/$i
     echo "outdir: $OUTDIR"
@@ -59,14 +63,18 @@ for i in `seq $startdir $enddir`; do
     ansible all --become -a "/usr/sbin/insmod /usr/local/bin/fuse-stats.ko"
 
     kubectl apply -f /local/repository/f3/experiments/scaling/writer.yaml
-    kubectl apply -f /local/repository/f3/experiments/scaling/reader-3.yaml
-    kubectl apply -f /local/repository/f3/experiments/scaling/reader-4.yaml
+    for j in `seq 3 $(( $readers + 2 ))`; do
+        kubectl apply -f /local/repository/f3/experiments/scaling/reader-deployment-$j.yaml
+        kubectl scale deployment reader-$j --replicas=$5 -nopenwhisk
+    done
     kubectl apply -f /local/repository/f3/experiments/scaling/f3-pvc.yaml
     #kubectl apply -f /local/repository/f3/experiments/scaling/minio-pvc.yaml
     kubectl apply -f /local/repository/f3/experiments/scaling/ceph-pvc-replicated.yaml
     kubectl wait --for=condition=ready pod writer -nopenwhisk --timeout=200s
-    kubectl wait --for=condition=ready pod reader-3 -nopenwhisk --timeout=200s
-    kubectl wait --for=condition=ready pod reader-4 -nopenwhisk --timeout=200s
+    for j in `seq 3 $(( $readers + 2 ))`; do
+        #kubectl wait --for=condition=ready pod reader-$j -nopenwhisk --timeout=200s
+        kubectl rollout status deployment/reader-$j --timeout=300s -nopenwhisk
+    done
 
     kubectl exec -n openwhisk writer -- mkdir /var/$sc/$target_dir
 
@@ -80,7 +88,13 @@ for i in `seq $startdir $enddir`; do
     kubectl exec writer -nopenwhisk -- /writer /var/$sc/$target_dir/f $FILESIZE | tee $OUTDIR/writer.out
     echo "$(date +%s)," >> $OUTDIR/writer_start_stop
     echo -n "$(date +%s)," > $OUTDIR/reader_start_stop
-    kubectl exec reader-3 -nopenwhisk -- /reader /var/$sc/$target_dir/f $FILESIZE | tee $OUTDIR/reader.out
+    #for j in `seq 3 $(( $readers + 2 ))`; do
+    #    kubectl exec reader-$j -nopenwhisk -- /reader /var/$sc/$target_dir/f $FILESIZE | tee $OUTDIR/reader.$j.out &
+    #done
+    for p in `kubectl get pods -lrole=reader -nopenwhisk -o name`; do
+        kubectl exec $p -nopenwhisk -- /reader /var/$sc/$target_dir/f $FILESIZE | tee $OUTDIR/`echo $p | sed 's/\//-/g'`.out &
+    done
+    wait
     echo "$(date +%s)," >> $OUTDIR/reader_start_stop
 
     now=$(date +%s)
@@ -109,6 +123,9 @@ for i in `seq $startdir $enddir`; do
 
     ansible all --become -m shell -a "rm -rf /mnt/local-cache/tempdir/*"
     kubectl delete -f /local/repository/f3/experiments/scaling/writer.yaml &
+    for j in `seq 3 $(( $readers + 2 ))`; do
+        kubectl delete -f /local/repository/f3/experiments/scaling/reader-deployment-$j.yaml &
+    done
     kubectl delete -f /local/repository/f3/experiments/scaling/reader-3.yaml &
     kubectl delete -f /local/repository/f3/experiments/scaling/reader-4.yaml &
     kubectl delete -f /local/repository/f3/experiments/scaling/f3-pvc.yaml &
@@ -118,13 +135,11 @@ for i in `seq $startdir $enddir`; do
         echo "Waiting for containers to exit..."
         sleep 60
     done
-    until cleanup-pod.sh reader-3 -nopenwhisk; do
-        echo "Waiting for containers to exit..."
-        sleep 60
-    done
-    until cleanup-pod.sh reader-4 -nopenwhisk; do
-        echo "Waiting for containers to exit..."
-        sleep 60
+    for j in `seq 3 $(( $readers + 2 ))`; do
+	    until cleanup-pod.sh -lapp=reader-$j -nopenwhisk; do
+		echo "Waiting for containers to exit..."
+		sleep 60
+	    done
     done
     wait
 

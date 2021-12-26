@@ -77,7 +77,7 @@ $SUDO chmod +x /usr/local/bin/cleanup.sh
 $SUDO chmod +x /usr/local/bin/cleanup-pod.sh
 cd $PREVDIR
 
-maybe_install_packages screen jq
+maybe_install_packages screen jq time
 
 $SUDO pip3 install requests numpy
 
