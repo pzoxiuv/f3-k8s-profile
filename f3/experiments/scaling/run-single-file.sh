@@ -22,7 +22,8 @@ MYDIR=`dirname $0`
 
 sc=$1
 
-mb=10000
+#mb=10000
+mb=$7
 FILESIZE=$(( $mb * 1024 * 1024 ))
 
 OUTDIR_BASE=$MYDIR/single-file-$2-$4-$5-$mb
