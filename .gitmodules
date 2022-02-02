@@ -1,6 +1,3 @@
 [submodule "openwhisk-deploy-kube"]
 	path = openwhisk-deploy-kube
 	url = git@github.com:pzoxiuv/openwhisk-deploy-kube.git
-[submodule "f3"]
-	path = f3
-	url = git@github.com:pzoxiuv/f3.git
