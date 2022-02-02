@@ -1,2 +1,0 @@
-go run src/client/client.go -socket-file client.sock -temp-dir dirs/client-tempdir/ -in-pod=false
-go run src/server/server.go -temp-dir dirs/server-tempdir/

@@ -6,6 +6,8 @@ ALLNODESCRIPTS="setup-ssh.sh setup-disk-space.sh setup-f3-extras.sh"
 HEADNODESCRIPTS="setup-nfs-server.sh setup-nginx.sh setup-ssl.sh setup-kubespray.sh setup-kubernetes-extra.sh setup-f3.sh setup-end.sh"
 WORKERNODESCRIPTS="setup-nfs-client.sh"
 
+bash -c "cd /local/repository; git submodule init; git submodule update"
+
 export SRC=`dirname $0`
 cd $SRC
 . $SRC/setup-lib.sh

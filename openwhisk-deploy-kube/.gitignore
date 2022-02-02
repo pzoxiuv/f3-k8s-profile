@@ -1,5 +1,0 @@
-kubernetes/nginx/certs
-helm/mycluster.yaml
-myruntimes.json
-.DS_Store
-*~
