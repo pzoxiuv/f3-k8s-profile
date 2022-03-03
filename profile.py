@@ -205,7 +205,7 @@ pc.defineParameter(
     longDescription="Share SSD between F3 and Ceph",
     advanced=True)
 pc.defineParameter(
-    "replicateCeph","Replicate Ceph"
+    "replicateCeph","Replicate Ceph",
     portal.ParameterType.BOOLEAN,True,
     longDescription="Setup Ceph with replication",
     advanced=True)
