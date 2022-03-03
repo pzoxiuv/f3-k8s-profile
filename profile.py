@@ -204,6 +204,11 @@ pc.defineParameter(
     portal.ParameterType.BOOLEAN,True,
     longDescription="Share SSD between F3 and Ceph",
     advanced=True)
+pc.defineParameter(
+    "replicateCeph","Replicate Ceph"
+    portal.ParameterType.BOOLEAN,True,
+    longDescription="Setup Ceph with replication",
+    advanced=True)
 
 #
 # Get any input parameter values that will override our defaults.

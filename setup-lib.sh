@@ -120,6 +120,7 @@ NFSMOUNTDIR=/nfs
 NFSASYNC=0
 ENABLECEPH=1
 SHARESSD=1
+REPLICATECEPH=1
 
 if [ -f /etc/centos-release ] ; then
 	CENTOS=1
