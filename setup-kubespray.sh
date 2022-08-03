@@ -126,8 +126,10 @@ if [ $KUBEALLWORKERS -eq 1 -o "$NODES" = `echo $NODES | cut -d ' ' -f2` ]; then
     kubenodecount=1
 fi
 echo '[kube-node]' >> $INV
-for node in `echo $NODES | grep -v node-5 | cut -d ' ' -f${kubenodecount}-` ; do
-    echo "$node" >> $INV
+for node in `echo $NODES | cut -d ' ' -f${kubenodecount}-` ; do
+    if [ "$node" != "node-5" ]; then
+	    echo "$node" >> $INV
+    fi
 done
 cat <<EOF >> $INV
 [k8s-cluster:children]
