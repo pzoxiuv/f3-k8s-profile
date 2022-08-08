@@ -127,7 +127,7 @@ if [ $KUBEALLWORKERS -eq 1 -o "$NODES" = `echo $NODES | cut -d ' ' -f2` ]; then
 fi
 echo '[kube-node]' >> $INV
 for node in `echo $NODES | cut -d ' ' -f${kubenodecount}-` ; do
-    if [ "$node" != "node-5" ]; then
+    if [ "$node" != "node-8" ]; then
 	    echo "$node" >> $INV
     fi
 done
