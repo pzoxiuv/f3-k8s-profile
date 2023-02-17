@@ -413,7 +413,9 @@ if [ ! $? -eq 0 ]; then
 fi
 cd ..
 
-$SUDO cp /local/setup/inventories/kubernetes/artifacts/kubectl /usr/local/bin/
+#$SUDO cp /local/setup/inventories/kubernetes/artifacts/kubectl /usr/local/bin/
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+$SUDO install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 
 $SUDO rm -rf /root/.kube
 $SUDO mkdir -p /root/.kube
